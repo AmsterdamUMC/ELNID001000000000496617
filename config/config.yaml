@@ -1,0 +1,213 @@
+base_dir: /net/beegfs/groups/tytgat/ELNID001000000000496617
+scratch_dir: /scratch/users/P068280/ELNID001000000000496617
+
+# Common parameters
+R:
+  plotting_parameters: workflow/scripts/figures/plotting_parameters.R
+  genes_xlsx: config/features_of_interest/260716_genes.xlsx
+  genesets_xlsx: config/features_of_interest/260716_genesets.xlsx
+
+# Metadata inputs
+data:
+  sample_metadata_xlsx: config/metadata/samples/260729_sample_metadata.xlsx
+  # RNA-seq: Tofacitinib
+  rnaseq_files_xlsx: config/metadata/rnaseq/260729_rnaseq_files.xlsx
+  # Olink: Tofacitinib
+  olink_files_xlsx: config/metadata/olink/260811_olink_files.xlsx
+  # Microarray (Toedter 2011): Infliximab
+  toedter2011_gse: resources/toedter2011/GSE23597_series_matrix.txt
+  # Single-cell RNA-seq (Melon-Ardanaz 2025): Tofacitinib
+  melonardanaz2025_metadata_xlsx: config/metadata/scrnaseq_melonardanaz2025/scrnaseq_melonardanaz2025_samples.xlsx
+  melonardanaz2025_files_xlsx: config/metadata/scrnaseq_melonardanaz2025/scrnaseq_melonardanaz2025_files.xlsx
+  melonardanaz2025_mtx_dir: resources/melonardanaz2025
+
+# RNAseq alignment references
+reference:
+  star_index: /net/beegfs/groups/tytgat/data/bulktranscriptomics/rnasequencing/star_references/ensembl_GRCh38_ensembl104_sjdbO149
+  gtf: /net/beegfs/groups/tytgat/data/reference_genesets/homo_sapiens/gencode.v38.annotation.gtf
+
+# Comparatison parameters
+analysis_params:
+  deseq2:
+    min_counts: 10 # gene kept if >= min_counts in >= min_samples
+    min_samples: 5
+  limma:
+    min_detected: 2 # protein kept if non-NA in >= min_detected samples
+  fgsea:
+    min_size: 15
+    max_size: 500
+    n_perm_simple: 10000
+
+# Interaction
+interaction:
+  gene_set: [NFKB2, RELB, CD70, LTA, CD40, CD40LG, TNFRSF8, TNFRSF12A]
+
+# Comparisons
+# filter: columns to be filtered on based on the sample metadata
+# variable: the tested factor
+# contrast: c(numerator, denominator)
+# covariates:
+#   numeric: Numeric/continuous covariates
+#   categorical: categorical covariates
+
+## Tofacitinib (Own data)
+comparisons:
+  BINF_R_W8vW0:
+    assays: [rnaseq, olink]
+    filter: {Tissue: [BINF], Response: [R],  Week: [W0, W8]}
+    variable: Week
+    contrast: [W8, W0]
+    block: [DonorID]
+    covariates: 
+      numeric: [Age]
+      categorical: [Sex, Prednisone, Anti_TNF, Vedo]
+  BINF_NR_W8vW0:
+    assays: [rnaseq, olink]
+    filter: {Tissue: [BINF], Response: [NR], Week: [W0, W8]}
+    variable: Week
+    contrast: [W8, W0]
+    block: [DonorID]
+    covariates: 
+      numeric: [Age]
+      categorical: [Sex, Prednisone, Anti_TNF, Vedo]
+  BINF_LR_W8vW0:
+    assays: [rnaseq, olink]
+    filter: {Tissue: [BINF], Response: [LR], Week: [W0, W8]}
+    variable: Week
+    contrast: [W8, W0]
+    block: [DonorID]
+    covariates: 
+      numeric: [Age]
+      categorical: [Sex, Prednisone, Anti_TNF, Vedo]
+  BINF_RvNR_W0:
+    assays: [rnaseq, olink]
+    filter: {Tissue: [BINF], Response: [R, NR],  Week: [W0]}
+    variable: Response
+    contrast: [R, NR]
+    block: [DonorID]
+    covariates: 
+      numeric: [Age]
+      categorical: [Sex, Prednisone, Anti_TNF, Vedo, eMayo3]
+  BNINF_R_W8vW0:
+    assays: [rnaseq]
+    filter: {Tissue: [BNINF], Response: [R],  Week: [W0, W8]}
+    variable: Week
+    contrast: [W8, W0]
+    block: [DonorID]
+    covariates: 
+      numeric: [Age]
+      categorical: [Sex, Prednisone, Anti_TNF, Vedo]
+  BNINF_NR_W8vW0:
+    assays: [rnaseq]
+    filter: {Tissue: [BNINF], Response: [NR], Week: [W0, W8]}
+    variable: Week
+    contrast: [W8, W0]
+    block: [DonorID]
+    covariates: 
+      numeric: [Age]
+      categorical: [Sex, Anti_TNF, Vedo] #"Sex" and "Prednisone" usage are fully collinear in this comparison (the only male sample was on prednisone), can only include one.
+  BNINF_LR_W8vW0:
+    assays: [rnaseq]
+    filter: {Tissue: [BNINF], Response: [LR], Week: [W0, W8]}
+    variable: Week
+    contrast: [W8, W0]
+    block: [DonorID]
+    covariates: 
+      numeric: [Age]
+      categorical: [Sex, Prednisone, Anti_TNF, Vedo]
+  BNINF_RvNR_W0:
+    assays: [rnaseq]
+    filter: {Tissue: [BNINF], Response: [R, NR], Week: [W0]}
+    variable: Response
+    contrast: [R, NR]
+    covariates: 
+      numeric: [Age]
+      categorical: [Sex, Prednisone, Anti_TNF, Vedo, eMayo3]
+  PB_R_W8vW0:
+    assays: [rnaseq, olink]
+    filter: {Tissue: [PB], Response: [R], Week: [W0, W8]}
+    variable: Week
+    contrast: [W8, W0]
+    block: [DonorID]
+    covariates: 
+      numeric: [Age]
+      categorical: [Sex, Prednisone, Anti_TNF, Vedo]
+  PB_NR_W8vW0:
+    assays: [rnaseq, olink]
+    filter: {Tissue: [PB], Response: [NR], Week: [W0, W8]}
+    variable: Week
+    contrast: [W8, W0]
+    block: [DonorID]
+    covariates: 
+      numeric: [Age]
+      categorical: [Sex, Prednisone, Anti_TNF, Vedo]
+  PB_LR_W8vW0:
+    assays: [rnaseq, olink]
+    filter: {Tissue: [PB], Response: [LR], Week: [W0, W8]}
+    variable: Week
+    contrast: [W8, W0]
+    block: [DonorID]
+    covariates: 
+      numeric: [Age]
+      categorical: [Sex, Prednisone, Anti_TNF, Vedo]
+      
+  PB_RvNR_W0:
+    assays: [rnaseq, olink]
+    filter: {Tissue: [PB], Response: [R, NR], Week: [W0]}
+    variable: Response
+    contrast: [R, NR]
+    covariates: 
+      numeric: [Age]
+      categorical: [Sex, Prednisone, Anti_TNF, Vedo, eMayo3]
+
+## Infliximab (Toedter et al. 2011)
+comparisons_toedter2011:
+  BINF_R_W8vW0:
+    filter: {Tissue: [BINF], Response: [R],  Week: [W0, W8], Treatment: [Infliximab]}
+    variable: Week
+    contrast: [W8, W0]
+    block: [DonorID]
+  BINF_NR_W8vW0:
+    filter: {Tissue: [BINF], Response: [NR],  Week: [W0, W8], Treatment: [Infliximab]}
+    variable: Week
+    contrast: [W8, W0]
+    block: [DonorID]
+  BINF_RvNR_W0:
+    filter: {Tissue: [BINF], Response: [R, NR],  Week: [W0], Treatment: [Infliximab]}
+    variable: Response
+    contrast: [R, NR]
+
+## Tofacitinib (Melon-Ardanaz et al. 2025)
+comparisons_melonardanaz2025:
+  BINF_R_W8vW0:
+    filter: {Tissue: [BINF], Response: [R],  Week: [W0, W8]}
+    variable: Week
+    contrast: [W8, W0]
+  BINF_NR_W8vW0:
+    filter: {Tissue: [BINF], Response: [NR],  Week: [W0, W8]}
+    variable: Week
+    contrast: [W8, W0]
+  BINF_RvNR_W0:
+    filter: {Tissue: [BINF], Response: [R, NR],  Week: [W0]}
+    variable: Response
+    contrast: [R, NR]
+
+## Supervised machine learning (RvNR_W0)
+# Machine learning (pretreatment response prediction; modality comparison). The sweep is expanded by Snakemake into one job per (modality x model x k). sklearn/TPOT search spaces live in worker.py (they are code); the sweep dimensions and reproducibility settings are declared here.
+machine_learning:
+  comparisons: [TX_BINF_RvNR_W0, TX_PB_RvNR_W0, PX_BINF_RvNR_W0, PX_PB_RvNR_W0]
+  models: [LogisticRegression, GaussianNB, XGBoost, KNeighbors]
+  k_values: [10, 25, 50, 100, 200, 300, 400, 500]
+  n_seeds: 100
+  seed: 2025
+  metric: roc_auc
+  tpot:
+    generations: 5
+    population_size: 10
+    cv: 5
+  # feature-matrix export (ml_prepare_data)
+  week_column: Week
+  week: W0
+  label_column: Response
+  classes: [R, NR]
+  positive_class: R

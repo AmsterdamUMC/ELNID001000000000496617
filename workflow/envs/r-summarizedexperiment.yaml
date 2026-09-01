@@ -1,0 +1,7 @@
+name: r-summarizedexperiment
+channels:
+  - conda-forge
+  - bioconda  
+dependencies:
+  - r-tidyverse=2.0.0
+  - bioconductor-summarizedexperiment=1.40.0

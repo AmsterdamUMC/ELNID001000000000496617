@@ -1,0 +1,8 @@
+name: r-limma
+channels:
+  - conda-forge
+  - bioconda  
+dependencies:
+  - r-tidyverse=2.0.0
+  - bioconductor-limma=3.66.0
+  - bioconductor-summarizedexperiment=1.40.0
