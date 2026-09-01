@@ -1,0 +1,65 @@
+response_colors <- c("R" = "#E1BE6A", 
+                     "LR" = "#98B885",
+                     "NR" = "#40B0A6",
+                     "NS" = "#D3D3D3")
+response_shapes <- c("R" = 21,
+                     "LR" = 22,
+                     "NR" = 24)
+timepoint_colors <- c("W0" = "#C4E5DE",
+                      "W4" = "#6FB8AA",
+                      "W8" = "#1F6E5C")
+tissue_colors <- c("PBL" = "#FF0000",
+                   "Tissue" = "#0000FF")
+direction_colors <- c("Up" = "#F9665E",
+                      "Down" = "#799FCB",
+                      "NS" = "#D3D3D3")
+direction_shapes <- c("Up" = 24,
+                      "Down" = 25)
+significance_colors <- c("NS" = "#D3D3D3",
+                         "Significant" = "#000000")
+significance_alpha <- c("NS" = 0.1,
+                        "Significant" = 1)
+rvnr_direction_colors <- c("Treatment up" = "#F9665E",
+                           "Treatment down" = "#799FCB",
+                           "R: down; NR: up" = "#7247B8",
+                           "R: down; NR: stable" = "#DBB1E1",
+                           "R: up; NR: down" = "#4B1426",
+                           "R: up; NR: stable" = "#974C5E",
+                           "NS" = "#D3D3D3")
+
+treatment_colors <- c("Infliximab" = "#A7C7E7",
+                      "Tofacitinib" = "#264F26")
+
+tofvifx_direction_colors <- c("Treatment up" = "#F9665E",
+                              "Treatment down" = "#799FCB",
+                              "TOF: down; IFX: up" = "#7247B8",
+                              "TOF: down; IFX: stable" = "#DBB1E1",
+                              "TOF: up; IFX: down" = "#4B1426",
+                              "TOF: up; IFX: stable" = "#974C5E",
+                              "NS" = "#D3D3D3")
+
+bvpb_direction_colors <- c("Up" = "#F9665E",
+                           "Down" = "#799FCB",
+                           "B: down; PB: up" = "#7247B8",
+                           "B: down; PB: stable" = "#DBB1E1",
+                           "B: up; PB: down" = "#4B1426",
+                           "B: up; PB: stable" = "#974C5E",
+                           "NS" = "#D3D3D3")
+
+geneset_label_colors <- c("TCR" = "#D9AFC0",
+                          "TLR" = "#E8A5A0", 
+                          "JAK-STAT" = "#A8D5B5",
+                          "ISG" = "#F0C29A",
+                          "MHCI" = "#C3B1D9", 
+                          "MHCII" = "#EDE49A",
+                          "NFKBc" = "#9FD4CE", 
+                          "NFKBnc" = "#F0B8CE",
+                          "TCR" = "#C9AE93",
+                          "VEGF" = "#B7C0D8",
+                          "COM" = "#C6CFA0",
+                          "MAPK" = "#A8C6E0", 
+                          "ADME" = "#A0D8E0")
+
+category_label_colors <- c("Core" = "#808080",
+                           "Proteasome" = "#D55E00",
+                           "Immediate-early genes" = "#009E73")

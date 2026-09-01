@@ -1,0 +1,9 @@
+name: r-deseq2
+channels:
+  - conda-forge
+  - bioconda  
+dependencies:
+  - r-tidyverse=2.0.0
+  - bioconductor-deseq2=1.50.2
+  - bioconductor-org.hs.eg.db=3.22.0
+  - bioconductor-annotationdbi=1.72.0

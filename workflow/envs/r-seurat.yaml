@@ -1,0 +1,10 @@
+name: r-seurat
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - r-seurat=5.5.1
+  - r-openxlsx=4.2.8.1
+  - r-uwot=0.2.4
+  - r-tidyverse=2.0.0
+  - bioconductor-glmgampoi=1.22.0

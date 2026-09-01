@@ -1,0 +1,8 @@
+name: r-msigdbr
+channels:
+  - conda-forge
+  - bioconda  
+dependencies:
+  - r-msigdbr=26.1.0
+  - r-tidyverse=2.0.0
+  

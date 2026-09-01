@@ -1,0 +1,32 @@
+---
+title: "Count preparation"
+author: "Andrew Y.F. Li Yim"
+date: '2022-05-10'
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+library(Biobase)
+library(org.Hs.eg.db)
+```
+
+
+```{r setup, include=FALSE}
+gcounts_raw <- read.csv(file.path("counts.txt"), sep = "\t", skip = 1)
+gcounts <- gcounts_raw[,c(7:ncol(gcounts_raw))]
+rownames(gcounts) <- gcounts_raw$Geneid
+
+#Remove genes with 0 counts
+gcounts <- gcounts[rowSums(gcounts) != 0,]
+
+gcounts_colnames <- gsub("bam\\..+\\.(.+\\..+)_filtered\\.bam", "\\1", colnames(gcounts))
+gcounts_colnames[c(223,224)] <- paste0("PAXgene.", gcounts_colnames[c(223,224)])
+gcounts_colnames[c(225,226)] <- paste0("UHRR.", gcounts_colnames[c(223,224)])
+gcounts_colnames <- gsub("\\.", "-", gcounts_colnames)
+colnames(gcounts) <- gcounts_colnames
+rownames(gcounts) <- gsub("(.+)\\.[0-9]+$", "\\1", rownames(gcounts))
+
+write.csv(gcounts, "gcounts.csv")
+```

@@ -1,0 +1,177 @@
+---
+title: "Samples metadata"
+author: "Andrew Y.F. Li Yim"
+date: '2023-01-27'
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+require(dplyr)
+require(UpSetR)
+require(ggplot2)
+```
+
+```{r import sample metadata}
+microbiota_data <- readxl::read_excel(file.path("data", "samples", "microbiome", "samples.xlsx"))
+rnaseq_data <- readxl::read_excel(file.path("data", "samples", "rnaseq", "samples.xlsx"))
+olink_submission <- readxl::read_excel(file.path("data", "samples", "olink", "Shipping_manifest_serum.xlsx"))
+olink1_data <- readxl::read_excel(file.path("data", "samples", "olink", "20210492_Olink-Sample_Manifest_lysates_09Sept2021.xlsx"))
+olink2_data <- readxl::read_excel(file.path("data", "samples", "olink", "20210492_SERUM_sample_manifest_-_RAND.xlsx"))
+dnam_data <- readxl::read_excel(file.path("data", "samples", "dnamethylation", "samples_tofacitinib_PRJ0000036_UCPBTOFRESP_v3.xlsx"))
+```
+
+## OLINK
+
+```{r olink}
+olink1_data_formatted <- olink1_data %>%
+  dplyr::select(`Plate ID`, `Well ID`, `Unique Sample ID \r\n(for letters standard A-Z only)`, `Variable 1`) %>%
+  dplyr::rename(Olink_plate = `Plate ID`,
+                Olink_pos = `Well ID`,
+                Olink_ID = `Unique Sample ID \r\n(for letters standard A-Z only)`) %>%
+  dplyr::mutate(Castor = as.numeric(gsub("^([0-9]+)_.+$", "\\1", `Variable 1`)),
+                Timepoint = gsub("^[0-9]+_(.+)$", "\\1", `Variable 1`),
+                Timepoint = ifelse(Timepoint == "Screening", "Baseline", Timepoint),
+                Tissue = NA,
+                Sample_type = "Tissue") %>%
+  dplyr::filter(!is.na(Olink_ID))
+
+olink2_data_formatted <- olink2_data %>%
+  dplyr::select(`Plate ID`, `Well ID`, `Unique Sample ID \r\n(for letters standard A-Z only)`, `Variable 1`) %>%
+  dplyr::rename(Olink_plate = `Plate ID`,
+                Olink_pos = `Well ID`,
+                Olink_ID = `Unique Sample ID \r\n(for letters standard A-Z only)`) %>%
+  dplyr::mutate(Castor = as.numeric(gsub("^([0-9]+)_.+$", "\\1", `Variable 1`)),
+                Timepoint = gsub("^[0-9]+_(.+)$", "\\1", `Variable 1`),
+                Timepoint = ifelse(Timepoint == "Screening", "Baseline", Timepoint),
+                Tissue = "Serum",
+                Sample_type = "Blood") %>%
+  dplyr::filter(!is.na(Olink_ID))
+
+```
+
+We note that the `olink2_data_formatted` object as retrieved from `20210492_SERUM_sample_manifest_-_RAND.xlsx` does not contain the full sample/patient ID making retrieving such information impossible. I requested the proper table from Djuna de Jong and received it as `Shipping_manifest_serum.xlsx`. I will merge this information back into the data as the position is still encoded properly in `20210492_SERUM_sample_manifest_-_RAND.xlsx`.
+
+```{r serum olink}
+olink_submission_formatted <- olink_submission %>%
+  dplyr::rename(Olink_ID_full = `Acc-ctn #`,
+                Castor = `Patient Number`,
+                Date = `Kit Collection Date`,
+                Timepoint = `Visit Description`) %>%
+  dplyr::select(Olink_ID_full, Castor, Date, Timepoint) %>%
+  dplyr::mutate(Olink_ID = as.numeric(gsub("([0-9]{10})-[0-9]{2}", "\\1", Olink_ID_full)),
+                Date = as.Date(olink_submission$`Kit Collection Date`, format = "%d-%B-%y"),
+                Castor = as.numeric(Castor))
+
+olink2_data_formatted_proper <- olink2_data_formatted %>%
+  dplyr::select(-c(Castor, Timepoint, `Variable 1`)) %>%
+  dplyr::left_join(olink_submission_formatted, by = "Olink_ID") %>%
+  dplyr::mutate(`Variable 1` = paste0(Castor, "_", Timepoint)) %>%
+  dplyr::select(Olink_plate, Olink_pos, Olink_ID_full, `Variable 1`, Castor, Timepoint, Tissue, Sample_type) %>%
+  dplyr::rename(Olink_ID = Olink_ID_full)
+
+```
+
+```{r collect olink}
+olink_data_formatted <- rbind(olink1_data_formatted, olink2_data_formatted_proper) %>%
+  dplyr::select(-`Variable 1`) %>%
+  dplyr::mutate(Castor = as.numeric(Castor))
+```
+
+## Microbiota
+
+```{r microbiota}
+microbiota_data_formatted <- microbiota_data %>%
+  dplyr::mutate(Ext_ID = gsub("_", "-", Ext_ID),
+                Collection_Date = as.Date(Collection_Date)) %>%
+  dplyr::select(Subject_ID, Collection_Date, Ext_ID, Response, Host_Body_Product) %>%
+  dplyr::rename(Castor = Subject_ID,
+                Date = Collection_Date, 
+                Microbiome_ID = Ext_ID,
+                Response_2 = Response,
+                Sample_type = Host_Body_Product)
+
+```
+
+## DNA methylation
+
+```{r dnam}
+dnam_data_formatted <- dnam_data %>%
+  dplyr::mutate(Date_sampling = as.Date(Date_sampling)) %>%
+  dplyr::select(Castor_ID, Date_sampling, Age_baseline_sampling, Sample_Name, Sex, Group, Filepath) %>%
+  dplyr::rename(Castor = Castor_ID,
+                Date = Date_sampling, 
+                Age = Age_baseline_sampling,
+                DNAm_ID = Sample_Name,
+                Response = Group) %>%
+  dplyr::mutate(Tissue = "PBL",
+                DNAm_slide = strsplit(basename(Filepath), "_")[[1]][1],
+                DNAm_pos = strsplit(basename(Filepath), "_")[[1]][2]) %>%
+  dplyr::select(-Filepath)
+```
+
+## RNAseq
+
+```{r rnaseq}
+rnaseq_data_formatted <- rnaseq_data %>% 
+  dplyr::mutate(`Collection Date` = as.Date(`Collection Date`)) %>%
+  dplyr::select(ClientGroupName, `Visit Description`, `Collection Date`, `Collection Time`, Tissue, Distance, `Specimen Condition`, ClientAccessionID, Run) %>%
+  dplyr::rename(Castor = ClientGroupName,
+                Timepoint = `Visit Description`,
+                Date = `Collection Date`,
+                Time = `Collection Time`,
+                Condition = `Specimen Condition`,
+                RNAseq_ID = ClientAccessionID,
+                RNAseq_run = Run)
+```
+
+## Collect all samples
+
+I need to merge on the Castor ID, the sampling date, collection date, and tissue.
+
+```{r all samples}
+sample_metadata <- rnaseq_data_formatted %>%
+  dplyr::full_join(dnam_data_formatted, by = c("Castor", "Date", "Tissue")) %>%
+  dplyr::mutate(Sample_type = ifelse(Tissue == "PBL", "Blood", "Tissue")) %>%
+  dplyr::full_join(microbiota_data_formatted, by = c("Castor", "Date", "Sample_type")) %>%
+  dplyr::full_join(olink_data_formatted, by = c("Castor", "Timepoint", "Sample_type")) %>%
+  dplyr::mutate(Tissue.x = ifelse(!is.na(Tissue.y), Tissue.y, Tissue.x),
+                Response = ifelse(!is.na(Response_2), Response_2, Response),
+                Response = gsub("Responder", "R", Response),
+                Response = gsub("Non-responder", "NR", Response),
+                Response = gsub("\\?", NA, Response)) %>%
+  dplyr::select(-c(Tissue.y, Response_2)) %>%
+  dplyr::rename(Tissue = Tissue.x) %>%
+  dplyr::select(Castor, Age, Sex, Response, Timepoint, Date, Time, Sample_type, Tissue, Distance, Condition, RNAseq_ID, RNAseq_run, DNAm_ID, DNAm_slide, DNAm_pos, Microbiome_ID, Olink_ID, Olink_plate, Olink_pos)
+
+write.csv(sample_metadata, "sample_metadata.csv")
+```
+
+### Analyses
+
+Which samples were assayed using which modalities.
+
+```{r barplot frequencies}
+sample_metadata %>%
+  dplyr::select(Castor, Timepoint, Sample_type, RNAseq_ID, DNAm_ID, Microbiome_ID, Olink_ID) %>%
+  tidyr::pivot_longer(-c(Castor, Timepoint, Sample_type), names_to = "Modality", values_to = "SampleID") %>%
+  dplyr::filter(!is.na(SampleID),
+                !is.na(Timepoint)) %>%
+  dplyr::group_by(Castor, Timepoint, Sample_type) %>%
+  dplyr::summarize(sum = n()) %>%
+  ggplot(aes(x = Timepoint, y = sum)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~Sample_type, nrow = 2) +
+  theme_bw()
+```
+
+```{r upset total}
+total_bin_list <- list(RNAseq = which(!is.na(sample_metadata$RNAseq_ID)),
+                       DNAm = which(!is.na(sample_metadata$DNAm_ID)), 
+                       `16S` = which(!is.na(sample_metadata$Microbiome_ID)),
+                       Olink = which(!is.na(sample_metadata$Olink_ID)))
+
+upset(fromList(total_bin_list), order.by = "freq")
+```
+

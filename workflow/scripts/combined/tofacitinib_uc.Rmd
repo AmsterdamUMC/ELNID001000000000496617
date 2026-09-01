@@ -1,0 +1,602 @@
+---
+title: "Tofactinib UC"
+author: "Andrew Y.F. Li Yim"
+date: "2026-05-27"
+output: html_document
+---
+
+```{r library, include = FALSE}
+library(dplyr)
+library(DESeq2)
+library(ggplot2)
+library(ggrastr)
+library(readxl)
+library(readr)
+```
+
+```{r paths, include = FALSE}
+degs_TOF_BINF_R_w8vw0_own_csv <- "output/260519/rna_Tissue_R_Inflamed_Week_8_vs_Baseline_deseq2_results.csv"
+degs_TOF_BINF_NR_w8vw0_own_csv <- "output/260519/rna_Tissue_NR_Inflamed_Week_8_vs_Baseline_deseq2_results.csv"
+degs_TOF_BINF_RvNR_w0_own_csv <- "output/260519/rna_Tissue_Inflamed_Baseline_R_vs_NR_deseq2_results.csv"
+degs_TOF_BINF_R_w8vw0_melonardanaz2025_csv <- "output/260615/rna_Tissue_R_Inflamed_Week_8_vs_Baseline_deseq2_results_MelonArdanaz2025.csv"
+degs_TOF_BINF_NR_w8vw0_melonardanaz2025_csv <- "output/260615/rna_Tissue_NR_Inflamed_Week_8_vs_Baseline_deseq2_results_MelonArdanaz2025.csv"
+degs_TOF_BINF_RvNR_w0_melonardanaz2025_csv <- "output/260615/rna_Tissue_Baseline_R_vs_NR_Inflamed_deseq2_results_MelonArdanaz2025.csv"
+degs_IFX_BINF_R_w8vw0_arijs2009_csv <- "output/260519/Infliximab_R_Week_8_vs_Baseline_limma_results.csv"
+degs_IFX_BINF_NR_w8vw0_arijs2009_csv <- "output/260519/Infliximab_NR_Week_8_vs_Baseline_limma_results.csv"
+degs_IFX_BINF_RvNR_w0_arijs2009_csv <- "output/260519/Infliximab_R_vs_NR_Baseline_limma_results.csv"
+degs_TOF_PBL_R_w8vw0_own_csv <- "output/260519/rna_PBL_R_Inflamed_Week_8_vs_Baseline_deseq2_results.csv"
+degs_TOF_PBL_NR_w8vw0_own_csv <- "output/260519/rna_PBL_NR_Inflamed_Week_8_vs_Baseline_deseq2_results.csv"
+degs_TOF_PBL_RvNR_w0_own_csv <- "output/260519/rna_PBL_Inflamed_Baseline_R_vs_NR_deseq2_results.csv"
+
+olink_TOF_BINF_R_w8vw0_own_csv <- "output/260519/olink_Tissue_R_Inflamed_Week_8_vs_Baseline_limma_results.csv"
+olink_TOF_BINF_NR_w8vw0_own_csv <- "output/260519/olink_Tissue_NR_Inflamed_Week_8_vs_Baseline_limma_results.csv"
+olink_TOF_BINF_RvNR_w0_own_csv <- "output/260519/olink_Tissue_Inflamed_Baseline_R_vs_NR_limma_results.csv"
+olink_TOF_SERUM_R_w8vw0_own_csv <- "output/260519/olink_serum_R_Inflamed_Week_8_vs_Baseline_limma_results.csv"
+olink_TOF_SERUM_NR_w8vw0_own_csv <- "output/260519/olink_serum_NR_Inflamed_Week_8_vs_Baseline_limma_results.csv"
+olink_TOF_SERUM_RvNR_w0_own_csv <- "output/260519/olink_serum_Inflamed_Baseline_R_vs_NR_limma_results.csv"
+
+fgsea_TOF_BINF_R_w8vw0_own_csv <- "output/260519/rna_Tissue_R_Inflamed_Week_8_vs_Baseline_fgsea_results.csv"
+fgsea_TOF_BINF_NR_w8vw0_own_csv <- "output/260519/rna_Tissue_NR_Inflamed_Week_8_vs_Baseline_fgsea_results.csv"
+fgsea_TOF_BINF_RvNR_w0_own_csv <- "output/260519/rna_Tissue_Inflamed_Baseline_R_vs_NR_fgsea_results.csv"
+fgsea_TOF_BINF_R_w8vw0_melonardanaz2025_csv <- "output/260615/rna_Tissue_R_Inflamed_Week_8_vs_Baseline_fgsea_results_MelonArdanaz2025.csv"
+fgsea_TOF_BINF_NR_w8vw0_melonardanaz2025_csv <- "output/260615/rna_Tissue_NR_Inflamed_Week_8_vs_Baseline_fgsea_results_MelonArdanaz2025.csv"
+fgsea_TOF_BINF_RvNR_w0_melonardanaz2025_csv <- "output/260615/rna_Tissue_Baseline_R_vs_NR_Inflamed_fgsea_results_MelonArdanaz2025.csv"
+fgsea_IFX_BINF_R_w8vw0_arijs2009_csv <- "output/260519/Infliximab_R_Week_8_vs_Baseline_fgsea_results.csv"
+fgsea_IFX_BINF_NR_w8vw0_arijs2009_csv <- "output/260519/Infliximab_NR_Week_8_vs_Baseline_fgsea_results.csv"
+fgsea_IFX_BINF_RvNR_w0_arijs2009_csv <- "output/260519/Infliximab_R_vs_NR_Baseline_fgsea_results.csv"
+fgsea_TOF_PBL_R_w8vw0_own_csv <- "output/260519/rna_PBL_R_Inflamed_Week_8_vs_Baseline_fgsea_results.csv"
+fgsea_TOF_PBL_NR_w8vw0_own_csv <- "output/260519/rna_PBL_NR_Inflamed_Week_8_vs_Baseline_fgsea_results.csv"
+fgsea_TOF_PBL_RvNR_w0_own_csv <- "output/260519/rna_PBL_Inflamed_Baseline_R_vs_NR_fgsea_results.csv"
+```
+
+```{r import, include = FALSE}
+degs_TOF_BINF_R_w8vw0_own <- read.csv(degs_TOF_BINF_R_w8vw0_own_csv)
+degs_TOF_BINF_NR_w8vw0_own <- read.csv(degs_TOF_BINF_NR_w8vw0_own_csv)
+degs_TOF_BINF_RvNR_w0_own <- read.csv(degs_TOF_BINF_RvNR_w0_own_csv)
+degs_TOF_BINF_R_w8vw0_melonardanaz2025 <- read.csv(degs_TOF_BINF_R_w8vw0_melonardanaz2025_csv)
+degs_TOF_BINF_NR_w8vw0_melonardanaz2025 <- read.csv(degs_TOF_BINF_NR_w8vw0_melonardanaz2025_csv)
+degs_TOF_BINF_RvNR_w0_melonardanaz2025 <- read.csv(degs_TOF_BINF_RvNR_w0_melonardanaz2025_csv)
+degs_IFX_BINF_R_w8vw0_arijs2009 <- read.csv(degs_IFX_BINF_R_w8vw0_arijs2009_csv)
+degs_IFX_BINF_NR_w8vw0_arijs2009 <- read.csv(degs_IFX_BINF_NR_w8vw0_arijs2009_csv)
+degs_IFX_BINF_RvNR_w0_arijs2009 <- read.csv(degs_IFX_BINF_RvNR_w0_arijs2009_csv)
+degs_TOF_PBL_R_w8vw0_own <- read.csv(degs_TOF_PBL_R_w8vw0_own_csv)
+degs_TOF_PBL_NR_w8vw0_own <- read.csv(degs_TOF_PBL_NR_w8vw0_own_csv)
+degs_TOF_PBL_RvNR_w0_own <- read.csv(degs_TOF_PBL_RvNR_w0_own_csv)
+
+olink_TOF_BINF_R_w8vw0_own <- read.csv(olink_TOF_BINF_R_w8vw0_own_csv)
+olink_TOF_BINF_NR_w8vw0_own <- read.csv(olink_TOF_BINF_NR_w8vw0_own_csv)
+olink_TOF_BINF_RvNR_w0_own <- read.csv(olink_TOF_BINF_RvNR_w0_own_csv)
+olink_TOF_SERUM_R_w8vw0_own <- read.csv(olink_TOF_SERUM_R_w8vw0_own_csv)
+olink_TOF_SERUM_NR_w8vw0_own <- read.csv(olink_TOF_SERUM_NR_w8vw0_own_csv)
+olink_TOF_SERUM_RvNR_w0_own <- read.csv(olink_TOF_SERUM_RvNR_w0_own_csv)
+
+fgsea_TOF_BINF_R_w8vw0_own <- read.csv(fgsea_TOF_BINF_R_w8vw0_own_csv)
+fgsea_TOF_BINF_NR_w8vw0_own <- read.csv(fgsea_TOF_BINF_NR_w8vw0_own_csv)
+fgsea_TOF_BINF_RvNR_w0_own <- read.csv(fgsea_TOF_BINF_RvNR_w0_own_csv)
+fgsea_TOF_BINF_R_w8vw0_melonardanaz2025 <- read.csv(fgsea_TOF_BINF_R_w8vw0_melonardanaz2025_csv)
+fgsea_TOF_BINF_NR_w8vw0_melonardanaz2025 <- read.csv(fgsea_TOF_BINF_NR_w8vw0_melonardanaz2025_csv)
+fgsea_TOF_BINF_RvNR_w0_melonardanaz2025 <- read.csv(fgsea_TOF_BINF_RvNR_w0_melonardanaz2025_csv)
+fgsea_IFX_BINF_R_w8vw0_arijs2009 <- read.csv(fgsea_IFX_BINF_R_w8vw0_arijs2009_csv)
+fgsea_IFX_BINF_NR_w8vw0_arijs2009 <- read.csv(fgsea_IFX_BINF_NR_w8vw0_arijs2009_csv)
+fgsea_IFX_BINF_RvNR_w0_arijs2009 <- read.csv(fgsea_IFX_BINF_RvNR_w0_arijs2009_csv)
+fgsea_TOF_PBL_R_w8vw0_own <- read.csv(fgsea_TOF_PBL_R_w8vw0_own_csv)
+fgsea_TOF_PBL_NR_w8vw0_own <- read.csv(fgsea_TOF_PBL_NR_w8vw0_own_csv)
+fgsea_TOF_PBL_RvNR_w0_own <- read.csv(fgsea_TOF_PBL_RvNR_w0_own_csv)
+```
+
+## Overlapping results
+
+I want to identify which entities that are:
+- Pretreatment response-associated in intestinal tissue, which change in a response-associated manner over time both. Preferably identify features that present are consistenly different at both gene and protein level.
+- Pretreatment response-associated in intestinal tissue
+
+```{r features}
+degs_TOF_BINF_RvNR_w8vw0 <- degs_TOF_BINF_RvNR_w0_own %>%
+  dplyr::select(gene_id, gene_symbol, log2FoldChange, stat, pvalue, padj) %>%
+  dplyr::rename_at(vars(-gene_id, -gene_symbol), ~ paste0(., '_RvNR_w0')) %>%
+  dplyr::inner_join(degs_TOF_BINF_R_w8vw0_own %>%
+                      dplyr::select(gene_id, gene_symbol, log2FoldChange, stat, pvalue, padj) %>%
+                      dplyr::rename_at(vars(-gene_id, -gene_symbol), ~ paste0(., '_R_w8vw0')), 
+                    by = c("gene_id", "gene_symbol")) %>%
+  dplyr::inner_join(degs_TOF_BINF_NR_w8vw0_own %>%
+                      dplyr::select(gene_id, gene_symbol, log2FoldChange, stat, pvalue, padj) %>%
+                      dplyr::rename_at(vars(-gene_id, -gene_symbol), ~ paste0(., '_NR_w8vw0')), 
+                    by = c("gene_id", "gene_symbol")) %>%
+  dplyr::mutate(significance = case_when(
+    padj_RvNR_w0 < 0.05 & padj_R_w8vw0 < 0.05 ~ "Pretreatment, response-associated",
+    padj_RvNR_w0 < 0.05 & padj_NR_w8vw0 < 0.05 ~ "Pretreatment, non-response-associated",
+    padj_RvNR_w0 > 0.05 & padj_R_w8vw0 < 0.05 ~ "Response-associated",
+    padj_RvNR_w0 > 0.05 & padj_NR_w8vw0 < 0.05 ~ "Non-response-associated",
+    .default = "NS",
+  ))
+
+degs_TOF_BINF_RvNR_w8vw0_melonardanaz2025 <- degs_TOF_BINF_RvNR_w0_melonardanaz2025 %>%
+  dplyr::select(gene, log2FoldChange, stat, pvalue, padj) %>%
+  dplyr::rename_at(vars(-gene), ~ paste0(., '_RvNR_w0')) %>%
+  dplyr::inner_join(degs_TOF_BINF_R_w8vw0_melonardanaz2025 %>%
+                      dplyr::select(gene, log2FoldChange, stat, pvalue, padj) %>%
+                      dplyr::rename_at(vars(-gene), ~ paste0(., '_R_w8vw0')), 
+                    by = c("gene")) %>%
+  dplyr::inner_join(degs_TOF_BINF_NR_w8vw0_melonardanaz2025 %>%
+                      dplyr::select(gene, log2FoldChange, stat, pvalue, padj) %>%
+                      dplyr::rename_at(vars(-gene), ~ paste0(., '_NR_w8vw0')), 
+                    by = c("gene")) %>%
+  dplyr::mutate(significance = case_when(
+    padj_RvNR_w0 < 0.05 & padj_R_w8vw0 < 0.05 ~ "Pretreatment, response-associated",
+    padj_RvNR_w0 < 0.05 & padj_NR_w8vw0 < 0.05 ~ "Pretreatment, non-response-associated",
+    padj_RvNR_w0 > 0.05 & padj_R_w8vw0 < 0.05 ~ "Response-associated",
+    padj_RvNR_w0 > 0.05 & padj_NR_w8vw0 < 0.05 ~ "Non-response-associated",
+    .default = "NS",
+  ))
+
+olink_TOF_BINF_RvNR_w8vw0 <-  olink_TOF_BINF_RvNR_w0_own %>%
+  dplyr::select(gene_symbol, log2FoldChange, t, pvalue, padj) %>%
+  dplyr::rename_at(vars(-gene_symbol), ~ paste0(., '_RvNR_w0')) %>%
+  dplyr::inner_join(olink_TOF_BINF_R_w8vw0_own %>%
+                      dplyr::select(gene_symbol, log2FoldChange, t, pvalue, padj) %>%
+                      dplyr::rename_at(vars(-gene_symbol), ~ paste0(., '_R_w8vw0')), 
+                    by = c("gene_symbol")) %>%
+  dplyr::inner_join(olink_TOF_BINF_NR_w8vw0_own %>%
+                      dplyr::select(gene_symbol, log2FoldChange, t, pvalue, padj) %>%
+                      dplyr::rename_at(vars(-gene_symbol), ~ paste0(., '_NR_w8vw0')), 
+                    by = c("gene_symbol")) %>%
+  dplyr::mutate(significance = case_when(
+    padj_RvNR_w0 < 0.05 & padj_R_w8vw0 < 0.05 ~ "Pretreatment, response-associated",
+    padj_RvNR_w0 < 0.05 & padj_NR_w8vw0 < 0.05 ~ "Pretreatment, non-response-associated",
+    padj_RvNR_w0 > 0.05 & padj_R_w8vw0 < 0.05 ~ "Response-associated",
+    padj_RvNR_w0 > 0.05 & padj_NR_w8vw0 < 0.05 ~ "Non-response-associated",
+    .default = "NS",
+  ))
+
+degs_TOF_PBL_RvNR_w8vw0 <- degs_TOF_PBL_RvNR_w0_own %>%
+  dplyr::select(gene_id, gene_symbol, log2FoldChange, stat, pvalue, padj) %>%
+  dplyr::rename_at(vars(-gene_id, -gene_symbol), ~ paste0(., '_RvNR_w0')) %>%
+  dplyr::inner_join(degs_TOF_PBL_R_w8vw0_own %>%
+                      dplyr::select(gene_id, gene_symbol, log2FoldChange, stat, pvalue, padj) %>%
+                      dplyr::rename_at(vars(-gene_id, -gene_symbol), ~ paste0(., '_R_w8vw0')), 
+                    by = c("gene_id", "gene_symbol")) %>%
+  dplyr::inner_join(degs_TOF_PBL_NR_w8vw0_own %>%
+                      dplyr::select(gene_id, gene_symbol, log2FoldChange, stat, pvalue, padj) %>%
+                      dplyr::rename_at(vars(-gene_id, -gene_symbol), ~ paste0(., '_NR_w8vw0')), 
+                    by = c("gene_id", "gene_symbol")) %>%
+  dplyr::mutate(significance = case_when(
+    padj_RvNR_w0 < 0.05 & padj_R_w8vw0 < 0.05 ~ "Pretreatment, response-associated",
+    padj_RvNR_w0 < 0.05 & padj_NR_w8vw0 < 0.05 ~ "Pretreatment, non-response-associated",
+    padj_RvNR_w0 > 0.05 & padj_R_w8vw0 < 0.05 ~ "Response-associated",
+    padj_RvNR_w0 > 0.05 & padj_NR_w8vw0 < 0.05 ~ "Non-response-associated",
+    .default = "NS",
+  ))
+```
+
+```{r pathways wide}
+fgsea_TOF_BINF_RvNR_w8vw0_own_wide <- fgsea_TOF_BINF_R_w8vw0_own %>%
+  dplyr::mutate(significance = case_when(
+    padj<0.05 & NES<0 ~ "SS Down",
+    padj<0.05 & NES>0 ~ "SS Up",
+    pval<0.05 & NES<0 ~ "S Down",
+    pval<0.05 & NES>0 ~ "S Up",
+    pval>0.05 & NES<0 ~ "NS Down",
+    pval>0.05 & NES>0 ~ "NS Up",
+  )) %>%
+  dplyr::select(pathway, pval, padj, NES, significance) %>%
+  dplyr::rename_at(vars(-pathway), ~ paste0(., '_TOF_BINF_R_w8vw0_own')) %>%
+  dplyr::inner_join(fgsea_TOF_BINF_NR_w8vw0_own %>%
+                      dplyr::mutate(significance = case_when(
+                        padj<0.05 & NES<0 ~ "SS Down",
+                        padj<0.05 & NES>0 ~ "SS Up",
+                        pval<0.05 & NES<0 ~ "S Down",
+                        pval<0.05 & NES>0 ~ "S Up",
+                        pval>0.05 & NES<0 ~ "NS Down",
+                        pval>0.05 & NES>0 ~ "NS Up",
+                      )) %>%
+                      dplyr::select(pathway, pval, padj, NES, significance) %>%
+                      dplyr::rename_at(vars(-pathway), ~ paste0(., '_TOF_BINF_NR_w8vw0_own')),
+                    by = "pathway")
+
+fgsea_TOF_BINF_RvNR_w8vw0_melonardanaz2025_wide <- fgsea_TOF_BINF_R_w8vw0_melonardanaz2025 %>%
+  dplyr::mutate(significance = case_when(
+    padj<0.05 & NES<0 ~ "SS Down",
+    padj<0.05 & NES>0 ~ "SS Up",
+    pval<0.05 & NES<0 ~ "S Down",
+    pval<0.05 & NES>0 ~ "S Up",
+    pval>0.05 & NES<0 ~ "NS Down",
+    pval>0.05 & NES>0 ~ "NS Up",
+  )) %>%
+  dplyr::select(pathway, pval, padj, NES, significance) %>%
+  dplyr::rename_at(vars(-pathway), ~ paste0(., '_TOF_BINF_R_w8vw0_am2025')) %>%
+  dplyr::inner_join(fgsea_TOF_BINF_NR_w8vw0_melonardanaz2025 %>%
+                      dplyr::mutate(significance = case_when(
+                        padj<0.05 & NES<0 ~ "SS Down",
+                        padj<0.05 & NES>0 ~ "SS Up",
+                        pval<0.05 & NES<0 ~ "S Down",
+                        pval<0.05 & NES>0 ~ "S Up",
+                        pval>0.05 & NES<0 ~ "NS Down",
+                        pval>0.05 & NES>0 ~ "NS Up",)) %>%
+                      dplyr::select(pathway, pval, padj, NES, significance) %>%
+                      dplyr::rename_at(vars(-pathway), ~ paste0(., '_TOF_BINF_NR_w8vw0_am2025')),
+                    by = "pathway")
+
+fgsea_IFX_BINF_RvNR_w8vw0_arijs2009_wide <- fgsea_IFX_BINF_R_w8vw0_arijs2009 %>%
+  dplyr::mutate(significance = case_when(
+    padj<0.05 & NES<0 ~ "SS Down",
+    padj<0.05 & NES>0 ~ "SS Up",
+    pval<0.05 & NES<0 ~ "S Down",
+    pval<0.05 & NES>0 ~ "S Up",
+    pval>0.05 & NES<0 ~ "NS Down",
+    pval>0.05 & NES>0 ~ "NS Up",
+  )) %>%
+  dplyr::select(pathway, pval, padj, NES, significance) %>%
+  dplyr::rename_at(vars(-pathway), ~ paste0(., '_IFX_BINF_R_w8vw0_arijs2009')) %>%
+  dplyr::inner_join(fgsea_IFX_BINF_NR_w8vw0_arijs2009 %>%
+                      dplyr::mutate(significance = case_when(
+                        padj<0.05 & NES<0 ~ "SS Down",
+                        padj<0.05 & NES>0 ~ "SS Up",
+                        pval<0.05 & NES<0 ~ "S Down",
+                        pval<0.05 & NES>0 ~ "S Up",
+                        pval>0.05 & NES<0 ~ "NS Down",
+                        pval>0.05 & NES>0 ~ "NS Up",
+                      )) %>%
+                      dplyr::select(pathway, pval, padj, NES, significance) %>%
+                      dplyr::rename_at(vars(-pathway), ~ paste0(., '_IFX_BINF_NR_w8vw0_arijs2009')),
+                    by = "pathway")
+
+fgsea_TOF_PBL_RvNR_w8vw0_own <- fgsea_TOF_PBL_R_w8vw0_own %>%
+  dplyr::mutate(significance = case_when(
+    padj<0.05 & NES<0 ~ "SS Down",
+    padj<0.05 & NES>0 ~ "SS Up",
+    pval<0.05 & NES<0 ~ "S Down",
+    pval<0.05 & NES>0 ~ "S Up",
+    pval>0.05 & NES<0 ~ "NS Down",
+    pval>0.05 & NES>0 ~ "NS Up",
+  )) %>%
+  dplyr::select(pathway, pval, padj, NES, significance) %>%
+  dplyr::rename_at(vars(-pathway), ~ paste0(., '_TOF_PBL_R_w8vw0_own')) %>%
+  dplyr::inner_join(fgsea_TOF_PBL_NR_w8vw0_own %>%
+                      dplyr::mutate(significance = case_when(
+                        padj<0.05 & NES<0 ~ "SS Down",
+                        padj<0.05 & NES>0 ~ "SS Up",
+                        pval<0.05 & NES<0 ~ "S Down",
+                        pval<0.05 & NES>0 ~ "S Up",
+                        pval>0.05 & NES<0 ~ "NS Down",
+                        pval>0.05 & NES>0 ~ "NS Up",)) %>%
+                      dplyr::select(pathway, pval, padj, NES, significance) %>%
+                      dplyr::rename_at(vars(-pathway), ~ paste0(., '_TOF_PBL_NR_w8vw0_own')),
+                    by = "pathway")
+
+fgsea_total_wide <- fgsea_TOF_BINF_RvNR_w8vw0_own_wide %>%
+  dplyr::inner_join(fgsea_TOF_BINF_RvNR_w8vw0_melonardanaz2025_wide,
+                    by = "pathway") %>%
+  dplyr::inner_join(fgsea_IFX_BINF_RvNR_w8vw0_arijs2009_wide,
+                    by = "pathway") %>%
+  dplyr::inner_join(fgsea_TOF_PBL_RvNR_w8vw0_own,
+                    by = "pathway")
+
+fgsea_total_wide_sig <- fgsea_total_wide %>%
+  dplyr::filter(significance_TOF_BINF_R_w8vw0_own %in% c("SS Up", "SS Down"),
+                significance_TOF_BINF_R_w8vw0_am2025 == significance_TOF_BINF_R_w8vw0_own) %>%
+  dplyr::mutate(significance = case_when(
+    (significance_TOF_BINF_R_w8vw0_own=="SS Up" & 
+      significance_TOF_BINF_NR_w8vw0_own%in%c("NS Up", "NS Down", "SS Down", "S Down") & 
+      significance_IFX_BINF_R_w8vw0_arijs2009%in%c("S Down", "SS Down")) ~ "TOF R up; IFX R down",
+    (significance_TOF_BINF_R_w8vw0_own=="SS Down" & 
+      significance_TOF_BINF_NR_w8vw0_own%in%c("NS Up", "NS Down", "SS Up", "S Up") & 
+      significance_IFX_BINF_R_w8vw0_arijs2009 %in%c("S Up", "SS Up")) ~ "TOF R down; IFX R up",
+    (significance_TOF_BINF_R_w8vw0_own=="SS Up" & 
+      significance_TOF_BINF_NR_w8vw0_own%in%c("NS Up", "NS Down", "SS Down", "S Down") & 
+      significance_IFX_BINF_R_w8vw0_arijs2009%in%c("S Up", "SS Up")) ~ "TOF R up; IFX R up",
+    (significance_TOF_BINF_R_w8vw0_own=="SS Down" & 
+      significance_TOF_BINF_NR_w8vw0_own%in%c("NS Up", "NS Down", "SS Up", "S Up") & 
+      significance_IFX_BINF_R_w8vw0_arijs2009%in%c("S Down", "SS Down")) ~ "TOF R down; IFX R down",
+    (significance_TOF_BINF_R_w8vw0_own=="SS Up" & 
+       significance_TOF_BINF_NR_w8vw0_own%in%c("NS Up", "NS Down", "SS Down", "S Down") & 
+       significance_IFX_BINF_R_w8vw0_arijs2009%in%c("NS Up", "NS Down")) ~ "TOF R up",
+    (significance_TOF_BINF_R_w8vw0_own=="SS Down" & 
+       significance_TOF_BINF_NR_w8vw0_own%in%c("NS Up", "NS Down", "SS Up", "S Up") & 
+       significance_IFX_BINF_R_w8vw0_arijs2009%in%c("NS Up", "NS Down")) ~ "TOF R down",
+    .default="NS")) %>%
+  dplyr::select(pathway, starts_with("significance"))
+
+fgsea_total_wide_sig %>%
+  dplyr::filter(significance %in% c("TOF R down", "TOF R up"))
+
+fgsea_total_wide_interesting <- fgsea_total_wide %>%
+  dplyr::filter_out(grepl("^NS", significance_TOF_BINF_R_w8vw0_own) & 
+                      grepl("^NS", significance_TOF_BINF_NR_w8vw0_own) & 
+                      grepl("^NS", significance_TOF_BINF_R_w8vw0_am2025) & 
+                      grepl("^NS", significance_TOF_BINF_NR_w8vw0_am2025) &
+                      grepl("^NS", significance_IFX_BINF_R_w8vw0_arijs2009) &
+                      grepl("^NS", significance_IFX_BINF_NR_w8vw0_arijs2009)) %>%
+  dplyr::mutate(significance = case_when(
+    significance_TOF_BINF_R_w8vw0_own == "Up" & 
+      significance_TOF_BINF_R_w8vw0_am2025 == "Up" & 
+      significance_TOF_BINF_NR_w8vw0_own %in% c("NS Up", "NS Down", "Down") & 
+      significance_IFX_BINF_R_w8vw0_arijs2009 %in% c("NS Up", "NS Down", "Down") ~ "Tofacitinib-specific, concordant response-associated upregulation",
+    significance_TOF_BINF_R_w8vw0_own == "Down" & 
+      significance_TOF_BINF_R_w8vw0_am2025 == "Down" & 
+      significance_TOF_BINF_NR_w8vw0_own %in% c("NS Up", "NS Down", "Up") & 
+      significance_IFX_BINF_R_w8vw0_arijs2009 %in% c("NS Up", "NS Down", "Up") ~ "Tofacitinib-specific, concordant response-associated downregulation"
+  ),
+  )
+
+fgsea_total_wide_conctofspec <- fgsea_total_wide_interesting %>%
+  dplyr::filter(significance != "NS") %>%
+  dplyr::arrange(significance)
+
+```
+
+# Tofacitinib response-associated differences, validated by Melon-Ardanaz, but opposite in infliximab responders
+
+Which pathways are down in tofactinib responders and non-responders.
+
+```{r}
+fgsea_TOF_BINF_RvNR_w8vw0_own_wide %>% 
+  dplyr::filter(significance_TOF_BINF_R_w8vw0_own == "Down" & significance_TOF_BINF_NR_w8vw0_own == "Down")
+```
+
+```{r}
+fgsea_TOF_BINF_RvNR_w8vw0_own_wide %>% 
+  dplyr::filter(significance_TOF_BINF_R_w8vw0_own == "Down" & significance_TOF_BINF_NR_w8vw0_own != "Down")
+```
+
+```{r JAK pathways}
+fgsea_TOF_BINF_RvNR_w8vw0_own_wide %>%
+  dplyr::filter(grepl("JAK", pathway))
+```
+
+```{r JAK pathways}
+fgsea_TOF_BINF_RvNR_w8vw0_own_wide %>%
+  dplyr::filter(grepl("INTERFERON", pathway))
+```
+
+Which pathways are discordant between tofactinib and infliximab responders.
+
+```{r}
+fgsea_total_wide_conctofspec_tofifxdisc <- fgsea_total_wide_conctofspec %>%
+  dplyr::mutate(direction_IFX_BINF_R_w8vw0_arijs2009 = gsub("NS ", "", significance_IFX_BINF_R_w8vw0_arijs2009)) %>%
+  dplyr::filter(significance_TOF_BINF_R_w8vw0_own != direction_IFX_BINF_R_w8vw0_arijs2009)
+```
+
+
+```{r pathways long}
+fgsea_TOF_BINF_RvNR_w8vw0_own_long <- fgsea_TOF_BINF_R_w8vw0_own %>%
+  dplyr::select(pathway, pval, padj, NES) %>%
+  dplyr::mutate(Response = "R") %>%
+  dplyr::rows_append(fgsea_TOF_BINF_NR_w8vw0_own %>%
+                       dplyr::select(pathway, pval, padj, NES) %>%
+                       dplyr::mutate(Response = "NR")) %>%
+  dplyr::rows_append(fgsea_TOF_BINF_RvNR_w0_own %>%
+                       dplyr::select(pathway, pval, padj, NES) %>%
+                       dplyr::mutate(Response = "RvNR")) %>%
+  dplyr::mutate(Treatment = "Tofacitinib",
+                Tissue = "BINF",
+                Source = "Own")
+
+fgsea_TOF_BINF_RvNR_w8vw0_melonardanaz2025_long <- fgsea_TOF_BINF_R_w8vw0_melonardanaz2025 %>%
+  dplyr::select(pathway, pval, padj, NES) %>%
+  dplyr::mutate(Response = "R") %>%
+  dplyr::rows_append(fgsea_TOF_BINF_NR_w8vw0_melonardanaz2025 %>%
+                       dplyr::select(pathway, pval, padj, NES) %>%
+                       dplyr::mutate(Response = "NR")) %>%
+  dplyr::rows_append(fgsea_TOF_BINF_RvNR_w0_melonardanaz2025 %>%
+                       dplyr::select(pathway, pval, padj, NES) %>%
+                       dplyr::mutate(Response = "RvNR")) %>%
+  dplyr::mutate(Treatment = "Tofacitinib",
+                Tissue = "BINF",
+                Source = "Melon-Ardanaz 2025")
+
+fgsea_IFX_BINF_RvNR_w8vw0_arijs2009_long <- fgsea_IFX_BINF_R_w8vw0_arijs2009 %>%
+  dplyr::select(pathway, pval, padj, NES) %>%
+  dplyr::mutate(Response = "R") %>%
+  dplyr::rows_append(fgsea_IFX_BINF_NR_w8vw0_arijs2009 %>%
+                       dplyr::select(pathway, pval, padj, NES) %>%
+                       dplyr::mutate(Response = "NR")) %>%
+  dplyr::rows_append(fgsea_IFX_BINF_RvNR_w0_arijs2009 %>%
+                       dplyr::select(pathway, pval, padj, NES) %>%
+                       dplyr::mutate(Response = "RvNR")) %>%
+  dplyr::mutate(Treatment = "Infliximab",
+                Tissue = "BINF",
+                Source = "Arijs 2009")
+
+fgsea_TOF_PBL_RvNR_w8vw0_own_long <- fgsea_TOF_PBL_R_w8vw0_own %>%
+  dplyr::select(pathway, pval, padj, NES) %>%
+  dplyr::mutate(Response = "R") %>%
+  dplyr::rows_append(fgsea_TOF_PBL_NR_w8vw0_own %>%
+                       dplyr::select(pathway, pval, padj, NES) %>%
+                       dplyr::mutate(Response = "NR")) %>%
+  dplyr::rows_append(fgsea_TOF_PBL_RvNR_w0_own %>%
+                       dplyr::select(pathway, pval, padj, NES) %>%
+                       dplyr::mutate(Response = "RvNR")) %>%
+  dplyr::mutate(Treatment = "Tofacitinib",
+                Tissue = "PBL",
+                Source = "Own")
+
+fgsea_total_long <- fgsea_TOF_BINF_RvNR_w8vw0_own_long %>%
+  dplyr::rows_append(fgsea_TOF_BINF_RvNR_w8vw0_melonardanaz2025_long) %>%
+  dplyr::rows_append(fgsea_IFX_BINF_RvNR_w8vw0_arijs2009_long) %>%
+  dplyr::rows_append(fgsea_TOF_PBL_RvNR_w8vw0_own_long)
+```
+
+
+```{r, fig.height = 12, fig.width = 25}
+arrowplot_fgsea_total_long_ggplotobj <- fgsea_total_long %>%
+  dplyr::filter(pathway %in% (fgsea_total_wide_sig %>%
+                                dplyr::filter(significance %in% c("TOF R down", "TOF R up")) %>%
+                                dplyr::pull(pathway))) %>%
+  dplyr::mutate(Direction = ifelse(NES<0, "Down", "Up"),
+                Significance = ifelse(padj<0.05, "Significant", "NS")) %>%
+  ggplot(aes(x = pathway, y = Source)) +
+  geom_point(aes(
+    shape = Direction,
+    fill = NES,
+    size = -log10(padj),
+    alpha = Significance)) +
+  facet_grid(Response+Tissue~., scales = "free", space = "free") +
+  labs(title = "NES",
+       subtitle = "Week 8 relative to Week 0") +
+  scale_alpha_discrete(range = c(0.25, 1)) +
+  scale_shape_manual(values = c("Up" = 24, "Down" = 25)) +
+  scale_fill_gradient2(high = "coral3", low = "deepskyblue3", mid = "white") +
+  # scale_fill_gradient2(high = "#1c8859", low = "#a32a2f", mid = "white") +
+  theme_bw() +
+  guides(size = guide_legend(override.aes = list(shape=17))) +
+  theme(axis.title.y =  element_blank(),
+        axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 90, hjust = 1, face = "bold"),
+        axis.text.y = element_text(face = "bold"),
+        # plot.title = element_text(hjust = 0.5),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        legend.position = "right",
+        legend.title = element_text(face = "bold"),
+        plot.title = element_text(face = "bold"))
+
+print(arrowplot_fgsea_total_long_ggplotobj)
+
+ggsave("arrowplot_fgsea_conctofspec_long.pdf", width = 25, height = 11)
+```
+
+```{r}
+fgsea_TOF_BINF_RvNR_w8vw0_ownvmelonardanaz2025 %>%
+  dplyr::filter(significance != "NS") %>%
+  dplyr::select(pathway)
+```
+
+## RvNR: w8vw0: Own
+
+```{r fgsea rvnr w8vw0 own}
+fgsea_TOF_BINF_R_w8vw0_own_sig <- fgsea_TOF_BINF_R_w8vw0_own %>%
+  dplyr::filter(padj<0.05)
+
+fgsea_TOF_BINF_NR_w8vw0_own_Rsigfilt_sig <- fgsea_TOF_BINF_NR_w8vw0_own %>%
+  dplyr::filter(pathway %in% fgsea_TOF_BINF_R_w8vw0_own_sig$pathway) %>%
+  dplyr::arrange(pval) %>%
+  dplyr::filter(padj<0.05)
+```
+
+```{r}
+fgsea_TOF_BINF_RvNR_w8vw0_own_wide_treatment <- fgsea_TOF_BINF_RvNR_w8vw0_own_wide %>%
+  dplyr::filter(significance_TOF_BINF_R_w8vw0_own == significance_TOF_BINF_NR_w8vw0_own,
+                significance_TOF_BINF_R_w8vw0_own != "NS") %>%
+  dplyr::arrange(significance_TOF_BINF_R_w8vw0_own)
+
+
+fgsea_TOF_BINF_RvNR_w8vw0_own_wide_treatment %>%
+  dplyr::filter(pathway %in% c("HALLMARK_COMPLEMENT", "HALLMARK_INFLAMMATORY_RESPONSE", "HALLMARK_INTERFERON_ALPHA_RESPONSE", "HALLMARK_INTERFERON_GAMMA_RESPONSE"))
+
+fgsea_TOF_BINF_RvNR_w8vw0_own_wide_treatment %>%
+  dplyr::filter(significance_TOF_BINF_R_w8vw0_own == "Up")
+```
+
+
+## RvNR: w8vw0: OwnvMelonArdanaz2025
+
+### Genes
+
+```{r degs rvnr w8vw0 consistent}
+degs_BINF_R_w8vw0_consistent <- degs_BINF_R_w8vw0 %>%
+  dplyr::inner_join(degs_BINF_R_w8vw0_melonardanaz2025, by = c("gene_symbol" = "gene"), suffix = c("_own", "_am2025")) %>%
+  dplyr::mutate(Response = "R")
+
+degs_BINF_NR_w8vw0_consistent <- degs_BINF_NR_w8vw0 %>%
+  dplyr::inner_join(degs_BINF_NR_w8vw0_melonardanaz2025, by = c("gene_symbol" = "gene"), suffix = c("_own", "_am2025")) %>%
+  dplyr::mutate(Response = "NR")
+
+degs_BINF_RvNR_w8vw0_consistent <- degs_BINF_R_w8vw0_consistent %>%
+  dplyr::rows_append(degs_BINF_NR_w8vw0_consistent) %>%
+  dplyr::mutate(Response = factor(Response, levels = c("R", "NR")))
+```
+
+```{r degs r w8vw0 consistent sig}
+degs_BINF_R_w8vw0_consistent_sig <- degs_BINF_R_w8vw0_consistent %>%
+  dplyr::filter(pvalue_own < 0.05 & pvalue_am2025 < 0.05) %>%
+  dplyr::mutate(significance = case_when(
+    stat_own < 0 & stat_am2025 < 0 ~ "Down",
+    stat_own > 0 & stat_am2025 > 0 ~ "Up",
+    .default = "Inconsistent"
+  ))
+
+degs_BINF_NR_w8vw0_consistent_sig <- degs_BINF_NR_w8vw0_consistent %>%
+  dplyr::filter(pvalue_own < 0.05 & pvalue_am2025 < 0.05) %>%
+  dplyr::mutate(significance = case_when(
+    stat_own < 0 & stat_am2025 < 0 ~ "Down",
+    stat_own > 0 & stat_am2025 > 0 ~ "Up",
+    .default = "Inconsistent"
+  ))
+```
+
+```{r degs rvnr w8vw0 consistent plot, fig.width = 9, fig.height = 5}
+degs_BINF_RvNR_w8vw0_consistent %>%
+  ggplot(aes(x = log2FoldChange_own, y = log2FoldChange_am2025)) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0) +
+  geom_point_rast() +
+  geom_smooth(method = "lm") +
+  labs(title = "Comparison with Ardanaz Melon 2025\nDOI: 10.1093/ecco-jcc/jjaf076",
+       subtitle = "log2 (fold change)",
+       x = "Own\n(bulk RNAseq)",
+       y = "Ardanaz Melon 2025\n(pseudobulk scRNAseq)") +
+  facet_grid(.~Response) +
+  theme_bw() +
+  xlim(c(-10, 10)) +
+  ylim(c(-10, 10)) +
+  theme(panel.grid.minor=element_blank(),
+        panel.grid.major=element_blank())
+```
+
+Maybe good idea to highlight genes that were found to be TOF-specific (i.e. not found in IFX)
+
+### Pathways
+
+```{r fgsea rvnr w8vw0 consistent}
+fgsea_BINF_R_w8vw0_consistent <- fgsea_TOF_BINF_R_w8vw0_consistent %>%
+  dplyr::inner_join(fgsea_BINF_R_w8vw0_melonardanaz2025, by = c("pathway"), suffix = c("_own", "_am2025")) %>%
+  dplyr::mutate(Response = "R")
+
+fgsea_BINF_NR_w8vw0_consistent <- fgsea_BINF_NR_w8vw0 %>%
+  dplyr::inner_join(fgsea_BINF_NR_w8vw0_melonardanaz2025, by = c("pathway"), suffix = c("_own", "_am2025")) %>%
+  dplyr::mutate(Response = "NR")
+
+fgsea_BINF_RvNR_w8vw0_consistent <- fgsea_BINF_R_w8vw0_consistent %>%
+  dplyr::rows_append(fgsea_BINF_NR_w8vw0_consistent) %>%
+  dplyr::mutate(Response = factor(Response, levels = c("R", "NR")))
+```
+
+```{r fgsea r w8vw0 consistent sig}
+fgsea_BINF_R_w8vw0_consistent_sig <- fgsea_BINF_R_w8vw0_consistent %>%
+  dplyr::filter(pval_own < 0.05 & pval_am2025 < 0.05) %>%
+  dplyr::mutate(significance = case_when(
+    NES_own < 0 & NES_am2025 < 0 ~ "Down",
+    NES_own > 0 & NES_am2025 > 0 ~ "Up",
+    .default = "Inconsistent"
+  ))
+
+fgsea_BINF_NR_w8vw0_consistent_sig <- fgsea_BINF_NR_w8vw0_consistent %>%
+  dplyr::filter(pval_own < 0.05 & pval_am2025 < 0.05) %>%
+  dplyr::mutate(significance = case_when(
+    NES_own < 0 & NES_am2025 < 0 ~ "Down",
+    NES_own > 0 & NES_am2025 > 0 ~ "Up",
+    .default = "Inconsistent"
+  ))
+```
+
+```{r fgsea rvnr w8vw0 consistent plot, fig.width = 9, fig.height = 5}
+fgsea_BINF_RvNR_w8vw0_consistent %>%
+  ggplot(aes(x = NES_own, y = NES_am2025)) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0) +
+  geom_point_rast() +
+  geom_smooth(method = "lm") +
+  labs(title = "Comparison with Ardanaz Melon 2025\nDOI: 10.1093/ecco-jcc/jjaf076",
+       subtitle = "NES",
+       x = "Own\n(bulk RNAseq)",
+       y = "Ardanaz Melon 2025\n(pseudobulk scRNAseq)") +
+  facet_grid(.~Response) +
+  theme_bw() +
+  xlim(c(-3, 3)) +
+  ylim(c(-3, 3)) +
+  theme(panel.grid.minor=element_blank(),
+        panel.grid.major=element_blank())
+```
+
+Maybe good idea to highlight genes that were found to be TOF-specific (i.e. not found in IFX)
+

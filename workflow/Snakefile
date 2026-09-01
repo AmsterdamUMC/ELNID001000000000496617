@@ -1,0 +1,68 @@
+import os
+import re
+import openpyxl
+import pandas as pd
+import numpy as np
+
+configfile: "config/config.yaml"
+
+# Sample metadata
+sample_metadata_df = pd.read_excel(config['data']['sample_metadata_xlsx'], header=0)
+comparisons = config['comparisons']
+ml_comparisons = config['machine_learning']['comparisons']
+ml_models = config['machine_learning']['models']
+ml_ks = config['machine_learning']['k_values']
+
+# Rulefiles
+include: "rules/general.smk"
+include: "rules/rnaseq.smk"
+include: "rules/olink.smk"
+include: "rules/microarray_toedter2011.smk"
+include: "rules/scrnaseq_melonardanaz2025.smk"
+include: "rules/machine_learning.smk"
+include: "rules/figures.smk"
+
+wildcard_constraints:
+  comparison='|'.join([re.escape(x) for x in comparisons]),
+  rnaseq_sampleID='|'.join([re.escape(x) for x in rnaseq_sampleIDs]),
+  scrnaseq_melonardanaz2025_sampleID='|'.join([re.escape(x) for x in scrnaseq_melonardanaz2025_sampleIDs]),
+  ml_comparison='|'.join([re.escape(x) for x in ml_comparisons]),
+  ml_model='|'.join([re.escape(x) for x in ml_model]),
+  ml_k='|'.join([str(x) for x in ml_ks]),
+
+rule all:
+  input:
+    ## RNA-sequencing
+    # expand(config["scratch_dir"] + "/resources/rnaseq/fastq/{readfile}.fastq.gz", readfile=rnaseq_readfiles),
+    # config["scratch_dir"] + "/resources/rnaseq/reference",
+    # expand("output/rnaseq/fastqc/{readfile}/{readfile}_fastqc.zip", readfile=rnaseq_readfiles),
+    # expand("output/rnaseq/bam/{rnaseq_sampleID}", rnaseq_sampleID=rnaseq_sampleIDs),
+    # "output/rnaseq/counts/counts.txt",
+    # "output/rnaseq/multiqc",
+    # "output/rnaseq/dds/dds.Rds",
+    # expand("output/rnaseq/analyses/{comparison}/dds/dds_{comparison}.Rds", comparison=comparisons_rnaseq),
+    # expand("output/rnaseq/analyses/{comparison}/degs/degs_{comparison}.csv", comparison=comparisons_rnaseq),
+    expand("output/rnaseq/analyses/{comparison}/fgsea/fgsea_{comparison}.csv", comparison=comparisons_rnaseq),
+    ## Olink
+    # "output/olink/se/se.Rds",
+    # expand("output/olink/analyses/{comparison}/se/se_{comparison}.Rds", comparison=comparisons_olink),
+    # expand("output/olink/analyses/{comparison}/deps/deps_{comparison}.csv", comparison=comparisons_olink),
+    expand("output/olink/analyses/{comparison}/fgsea/fgsea_{comparison}.csv", comparison=comparisons_olink),
+    ## Gene expression microarray (Toedter 2011)
+    # expand("output/microarray_toedter2011/analyses/{comparison}/se/se_{comparison}.Rds", comparison=comparisons_toedter2011),
+    # expand("output/microarray_toedter2011/analyses/{comparison}/deps/deps_{comparison}.csv", comparison=comparisons_toedter2011),
+    expand("output/microarray_toedter2011/analyses/{comparison}/fgsea/fgsea_{comparison}.csv", comparison=comparisons_toedter2011),
+    ## Single-cell RNA-sequencing (Melon-Ardanaz 2025)
+    # expand("output/scrnaseq_melonardanaz2025/import/{scrnaseq_melonardanaz2025_sampleID}_pseudobulk.csv", scrnaseq_melonardanaz2025_sampleID=scrnaseq_melonardanaz2025_sampleIDs),
+    "output/scrnaseq_melonardanaz2025/merged/pseudobulk_merged.csv",
+    # expand("output/scrnaseq_melonardanaz2025/analyses/{comparison_scrnaseq_melonardanaz2025}/dds/dds_{comparison_scrnaseq_melonardanaz2025}.Rds", comparison_scrnaseq_melonardanaz2025 = comparisons_scrnaseq_melonardanaz2025),
+    # expand("output/scrnaseq_melonardanaz2025/analyses/{comparison_scrnaseq_melonardanaz2025}/degs/deseq_{comparison_scrnaseq_melonardanaz2025}.Rds", comparison_scrnaseq_melonardanaz2025 = comparisons_scrnaseq_melonardanaz2025),
+    expand("output/scrnaseq_melonardanaz2025/analyses/{comparison_scrnaseq_melonardanaz2025}/fgsea/fgsea_{comparison_scrnaseq_melonardanaz2025}.csv", comparison_scrnaseq_melonardanaz2025 = comparisons_scrnaseq_melonardanaz2025),
+    ## Supervised machine learning
+    "output/machine_learning/data/RvNR_W0_labels.csv",
+    ## Figures
+    "output/figures/figure1/figureB.pdf",
+    "output/figures/figure2/figureA.pdf",
+    "output/figures/figure3/figureA.pdf",
+    "output/figures/figure4/figureA.pdf",
+    "output/figures/figure5/figureA.pdf",
