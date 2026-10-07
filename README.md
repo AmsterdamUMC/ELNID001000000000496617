@@ -4,7 +4,7 @@
 
 Reproducible Snakemake workflow accompanying the manuscript:
 
-> **_[Manuscript title]_**
+> **_Longitudinal multi-omics profiling of tofacitinib response identifies a pre-existing Janus kinase-tractable inflammatory state in ulcerative colitis_**
 > [Author list]. _[Journal]_, [year]. DOI: `[TODO: add on acceptance]`
 
 <!-- Internal project identifier: ELNID001000000000496617 -->
@@ -35,7 +35,7 @@ The code is released so that the analyses reported in the manuscript can be insp
 
 ## Overview
 
-Inflamed and non-inflamed colonic biopsies and peripheral blood (leukocytes and serum) were collected from UC patients starting tofacitinib treatment. Samples were obtained before treatment (week 0) and at response assessment (week 8). Patients were classified by clinical response (decrease endoscopic Mayo score >= 2 AND decrease Robart Histology Index >= [TODO: FIX]). The transcriptome (bulk RNA-seq) and three targeted proteomic 96-panels (Olink) were profiled, and the findings were placed in context using two external, publicly available cohorts:
+Inflamed and non-inflamed colonic biopsies and peripheral blood (leukocytes and serum) were collected from UC patients starting tofacitinib treatment. Samples were obtained before treatment (week 0) and at response assessment (week 8). Patients were classified by clinical response (decrease endoscopic Mayo score >= 2 AND decrease Robart Histology Index >= 3). The transcriptome (bulk RNA-seq) and three targeted proteomic 96-panels (Olink) were profiled, and the findings were placed in context using two external, publicly available cohorts:
 
 | Modality | Treatment | Source | Platform |
 |---|---|---|---|
@@ -124,30 +124,18 @@ Key tool versions (pinned in `workflow/envs/`):
 
 The inputs fall into three categories, and this matters for reproducibility:
 
-**1. Provided in this repository** — sample/file manifests and curated
-gene/gene-set lists under `config/metadata/` and `config/features_of_interest/`.
+**1. Provided in this repository** — sample/file manifests and curated gene/gene-set lists under `config/metadata/` and `config/features_of_interest/`.
 
 **2. Public, must be downloaded into `resources/`:**
 
-- **GSE23597** (Toedter et al. 2011, infliximab microarray). Place the series
-  matrix at the path given by `data.toedter2011_gse` in `config.yaml`
+- **GSE23597** (Toedter et al. 2011, infliximab microarray). Place the series matrix at the path given by `data.toedter2011_gse` in `config.yaml`
   (`resources/toedter2011/GSE23597_series_matrix.txt`).
-- **GSE253006** (Melón-Ardanaz et al. 2025, scRNA-seq). Place the per-sample
-  count matrices under `data.melonardanaz2025_mtx_dir`
+- **GSE253006** (Melón-Ardanaz et al. 2025, scRNA-seq). Place the per-sample count matrices under `data.melonardanaz2025_mtx_dir`
   (`resources/melonardanaz2025/<Sample_ID>/`).
 
-**3. Controlled-access, not included** — the in-house raw sequencing reads
-(FASTQ) and Olink NPX measurements are individual-level human data and are not
-distributed here. They are available under the terms described in the manuscript's
-data-availability statement `[TODO: add repository / accession / access
-procedure]`. Without them, the RNA-seq alignment and Olink preparation steps
-cannot be re-run, but every downstream differential-expression and enrichment
-step can be reproduced from the intermediate objects if those are made available.
+**3. Controlled-access, not included** — the in-house raw sequencing reads (FASTQ) and Olink NPX measurements are individual-level human data and are not distributed here. Processed data can be found at Zenodo at DOI: 10.5281/zenodo.23210920. Without them, the RNA-seq alignment and Olink preparation steps cannot be re-run, but every downstream differential-expression and enrichment step can be reproduced from the intermediate objects if those are made available.
 
-**Reference genome/annotation.** The STAR index (Ensembl GRCh38) and GTF
-(GENCODE v38) are referenced in `config.yaml` by absolute cluster paths under
-`reference:`. Point these at your own local copies before running the alignment
-rules.
+**Reference genome/annotation.** The STAR index (Ensembl GRCh38) and GTF (GENCODE v38) are referenced in `config.yaml` by absolute cluster paths under `reference:`. Point these at your own local copies before running the alignment rules.
 
 ---
 
@@ -279,15 +267,12 @@ If you use this code, please cite the manuscript:
 
 and the external datasets it builds on:
 
-- Toedter G, et al. Gene expression profiling and response signatures associated
-  with differential responses to infliximab treatment in ulcerative colitis.
-  _Am J Gastroenterol_ 2011. GSE23597.
-- Melón-Ardanaz E, et al. 2025. _J Crohns Colitis_. DOI: 10.1093/ecco-jcc/jjaf076.
-  GSE253006.
+- Toedter G, et al. 2011. Gene expression profiling and response signatures associated with differential responses to infliximab treatment in ulcerative colitis.  _Am J Gastroenterol_ 2011. DOI: 10.1038/ajg.2011.83. GEO Accession ID: GSE23597.
+- Melón-Ardanaz E, et al. 2025. Differential effects of tofacitinib on macrophage activation contribute to lack of response in ulcerative colitis patients. _J Crohns Colitis_. DOI: 10.1093/ecco-jcc/jjaf076. GEO Accession ID: GSE253006.
 
 ---
 
 ## License and contact
 
-- **License:** `[TODO: add a LICENSE file — e.g. MIT for code]`
-- **Corresponding author / maintainer:** `[TODO: name, ORCID, contact]`
+- **License:** `MIT (see LICENSE)`
+- **Corresponding author / maintainer:** `Andrew Y.F. Li Yim, , a.y.liyim@amsterdamumc.nl`
