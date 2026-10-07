@@ -38,16 +38,6 @@ tofvifx_direction_colors <- c("Treatment up" = "#F9665E",
                               "TOF: up; IFX: stable" = "#974C5E",
                               "NS" = "#D3D3D3")
 
-ownvma2025_direction_colors <- c("Consistent up" = "#F9665E",
-                                 "Consistent down" = "#799FCB",
-                                 "Own: down; MA2025: up" = "#7247B8",
-                                 "Own: down" = "#DBB1E1",
-                                 "MA2025: down" = "#3E9B8E",
-                                 "Own: up; MA2025: down" = "#4B1426",
-                                 "Own: up" = "#974C5E",
-                                 "MA2025: up" = "#D9A356",
-                                 "NS" = "#D3D3D3")
-
 bvpb_direction_colors <- c("Up" = "#F9665E",
                            "Down" = "#799FCB",
                            "B: down; PB: up" = "#7247B8",

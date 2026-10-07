@@ -73,7 +73,7 @@ rule ml_train:
   log:
     "output/machine_learning/raw/logs/{modality}__{model}__k{k}.log",
   conda:
-    "../envs/python_machine_learning.yaml"
+    "../envs/machine_learning.yaml"
   message:
     "--- ML train: {wildcards.modality} / {wildcards.model} / k={wildcards.k} ---"
   threads: 1
@@ -115,7 +115,7 @@ rule ml_aggregate:
     log:
         "output/machine_learning/summary/aggregate_results.log",
     conda:
-        "../envs/python_machine_learning.yaml"
+        "../envs/machine_learning.yaml"
     threads: 1
     resources:
         mem_mb=8000,

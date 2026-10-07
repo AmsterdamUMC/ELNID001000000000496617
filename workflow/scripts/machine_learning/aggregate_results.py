@@ -1,304 +1,348 @@
 #!/usr/bin/env python3
-"""
-aggregate_results.py
-====================
-Run after all SLURM jobs complete.
-Reads every per-job CSV from results/raw/, builds:
+"""Aggregate repeated-CV ML results and generate summary plots under Snakemake."""
 
-  results/
-  ├── aggregated_fold_level.csv
-  ├── summary_by_k.csv
-  ├── summary_best_k.csv
-  ├── failed_jobs.csv
-  └── plots/
-      ├── auc_vs_k_<modality>.png
-      ├── heatmap_best_k.png
-      ├── seed_stability_violin.png
-      └── roc_curves_best_combo.png   ← NEW: one panel per modality, 95% CI
-"""
-
-import glob
-import os
+import sys
+import traceback
 from pathlib import Path
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
-from scipy import stats
-from sklearn.metrics import roc_curve, auc
+# Start logging before third-party imports.
+log_path = Path(snakemake.log[0])
+log_path.parent.mkdir(parents=True, exist_ok=True)
 
-BASE_DIR   = Path(__file__).resolve().parent.parent
-RAW_DIR    = BASE_DIR / "results" / "raw"
-OUT_DIR    = BASE_DIR / "results"
-PLOT_DIR   = OUT_DIR / "plots"
-PLOT_DIR.mkdir(parents=True, exist_ok=True)
+log_fh = log_path.open("w", buffering=1)
+sys.stdout = log_fh
+sys.stderr = log_fh
 
-K_VALUES    = [10, 25, 50, 100, 200, 300, 400, 500]
-MODALITIES  = ["PBL_PROT", "Tissue_PROT", "PBL_RNA", "Tissue_RNA"]
-MODEL_NAMES = ["LogisticRegression", "GaussianNB", "XGBoost", "KNeighbors"]
+print("[checkpoint] aggregation script started", flush=True)
+
+try:
+    print("[checkpoint] importing packages", flush=True)
+
+    from itertools import combinations
+
+    import matplotlib
+    matplotlib.use("Agg")
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+    import seaborn as sns
+    from scipy import stats
+    from sklearn.metrics import auc, roc_auc_score, roc_curve
+
+    print("[checkpoint] imports completed", flush=True)
+
+except Exception:
+    print("[error] imports failed", flush=True)
+    traceback.print_exc()
+    log_fh.flush()
+    raise
 
 
-# ── 1. Load all raw CSVs ──────────────────────────────────────
-def load_all_results():
-    ok_files     = sorted(RAW_DIR.glob("*__*.csv"))
-    failed_files = sorted(RAW_DIR.glob("*_FAILED.csv"))
+REQUIRED_RESULT_COLUMNS = {
+    "Modality", "ModelName", "k_requested", "Seed", "CV_AUC",
+    "TestSample", "TrueLabel", "PredScore",
+}
 
-    fail_rows = []
-    for f in failed_files:
+
+def read_many(files, kind, required=None):
+    frames = []
+    for filename in map(Path, files):
         try:
-            fail_rows.append(pd.read_csv(f))
-        except Exception:
-            pass
-    failed_df = pd.concat(fail_rows, ignore_index=True) if fail_rows else pd.DataFrame()
-
-    dfs = []
-    for f in ok_files:
-        if "_FAILED" in f.name:
-            continue
-        try:
-            dfs.append(pd.read_csv(f))
-        except Exception as e:
-            print(f"Warning: could not read {f}: {e}")
-
-    if not dfs:
-        raise RuntimeError(f"No result CSVs found in {RAW_DIR}")
-
-    all_df = pd.concat(dfs, ignore_index=True)
-    print(f"Loaded {len(dfs):,} job files → {len(all_df):,} fold rows")
-    if len(failed_df):
-        print(f"  ⚠  {len(failed_df)} failed jobs — see results/failed_jobs.csv")
-    return all_df, failed_df
+            frame = pd.read_csv(filename)
+        except Exception as exc:
+            raise RuntimeError(f"Cannot read {kind} file {filename}: {exc}") from exc
+        if required:
+            missing = required.difference(frame.columns)
+            if missing:
+                raise ValueError(
+                    f"{kind} file {filename} is missing columns: {sorted(missing)}"
+                )
+        if not frame.empty:
+            frames.append(frame)
+    if not frames:
+        raise RuntimeError(f"No non-empty {kind} files were supplied")
+    return pd.concat(frames, ignore_index=True)
 
 
-# ── 2. Summary tables ─────────────────────────────────────────
-def build_summary(all_df):
-    job_df = (
-        all_df
-        .groupby(["Modality", "ModelName", "k_requested", "Seed"], as_index=False)
-        ["LOOCV_Score"].first()
-    )
+def per_repeat_auc(results):
+    keys = ["Modality", "ModelName", "k_requested", "Seed"]
+    # Every sample row within a repeat should carry the same pooled CV_AUC.
+    inconsistent = results.groupby(keys)["CV_AUC"].nunique(dropna=False)
+    if (inconsistent > 1).any():
+        bad = inconsistent[inconsistent > 1].index.tolist()[:5]
+        raise ValueError(f"Inconsistent CV_AUC within repeat(s), for example: {bad}")
+    return results.groupby(keys, as_index=False)["CV_AUC"].first()
+
+
+def build_summaries(results):
+    repeat = per_repeat_auc(results)
     summary = (
-        job_df
-        .groupby(["Modality", "ModelName", "k_requested"])
+        repeat.groupby(["Modality", "ModelName", "k_requested"], as_index=False)
         .agg(
-            AUC_mean   = ("LOOCV_Score", "mean"),
-            AUC_std    = ("LOOCV_Score", "std"),
-            AUC_median = ("LOOCV_Score", "median"),
-            AUC_min    = ("LOOCV_Score", "min"),
-            AUC_max    = ("LOOCV_Score", "max"),
-            N_seeds    = ("LOOCV_Score", "count"),
+            AUC_mean=("CV_AUC", "mean"),
+            AUC_std=("CV_AUC", "std"),
+            AUC_median=("CV_AUC", "median"),
+            AUC_min=("CV_AUC", "min"),
+            AUC_max=("CV_AUC", "max"),
+            N_repeats=("CV_AUC", "count"),
         )
-        .reset_index()
         .sort_values(["Modality", "ModelName", "k_requested"])
     )
-    return summary, job_df
+    idx = summary.groupby(["Modality", "ModelName"])["AUC_mean"].idxmax()
+    best = summary.loc[idx].sort_values("AUC_mean", ascending=False).reset_index(drop=True)
+    return repeat, summary, best
 
 
-def best_k_per_combo(summary):
-    idx  = summary.groupby(["Modality", "ModelName"])["AUC_mean"].idxmax()
-    best = summary.loc[idx].copy().sort_values("AUC_mean", ascending=False)
-    return best
-
-
-# ── 3. Standard plots ─────────────────────────────────────────
-def plot_auc_vs_k(summary):
-    for mod in MODALITIES:
-        sub = summary[summary["Modality"] == mod]
-        if sub.empty:
-            continue
-        fig, ax = plt.subplots(figsize=(8, 5))
-        for model in MODEL_NAMES:
-            msub = sub[sub["ModelName"] == model].sort_values("k_requested")
-            if msub.empty:
-                continue
-            ax.errorbar(
-                msub["k_requested"], msub["AUC_mean"],
-                yerr=msub["AUC_std"],
-                marker="o", linewidth=1.8, capsize=4, label=model,
-            )
-        ax.set_xscale("log")
-        ax.set_xticks(K_VALUES)
-        ax.set_xticklabels(K_VALUES)
-        ax.set_xlabel("k (SelectKBest features)")
-        ax.set_ylabel("Mean LOOCV ROC-AUC (± std)")
-        ax.set_title(f"{mod} — AUC vs k")
-        ax.axhline(0.5, color="gray", linestyle="--", alpha=0.6, label="Chance")
-        ax.legend(fontsize=9)
-        ax.set_ylim(0, 1.05)
-        plt.tight_layout()
-        plt.savefig(PLOT_DIR / f"auc_vs_k_{mod}.png", dpi=150)
-        plt.close()
-        print(f"Saved → plots/auc_vs_k_{mod}.png")
-
-
-def plot_best_k_heatmap(best_df):
-    pivot_auc = best_df.pivot(index="Modality", columns="ModelName", values="AUC_mean")
-    pivot_k   = best_df.pivot(index="Modality", columns="ModelName", values="k_requested")
-    pivot_auc = pivot_auc.reindex(index=MODALITIES, columns=MODEL_NAMES)
-    pivot_k   = pivot_k.reindex(index=MODALITIES, columns=MODEL_NAMES)
-    annot = pivot_auc.round(3).astype(str) + "\n(k=" + pivot_k.astype(str) + ")"
-
-    fig, ax = plt.subplots(figsize=(10, 5))
-    sns.heatmap(pivot_auc, annot=annot, fmt="", cmap="YlGnBu",
-                vmin=0.4, vmax=1.0, ax=ax, linewidths=0.5,
-                linecolor="white", annot_kws={"size": 9})
-    ax.set_title("Best mean LOOCV AUC per modality × model (annotation: AUC | best k)")
-    plt.tight_layout()
-    plt.savefig(PLOT_DIR / "heatmap_best_k.png", dpi=150)
-    plt.close()
-    print("Saved → plots/heatmap_best_k.png")
-
-
-def plot_seed_distribution(job_df, best_df):
-    key_cols = ["Modality", "ModelName", "k_requested"]
-    merged   = job_df.merge(best_df[key_cols], on=key_cols, how="inner")
-    merged["combo"] = merged["Modality"] + "\n" + merged["ModelName"]
-    combos = merged["combo"].unique()
-
-    fig, ax = plt.subplots(figsize=(max(10, len(combos) * 1.2), 6))
-    data_by_combo = [merged[merged["combo"] == c]["LOOCV_Score"].values for c in combos]
-    parts = ax.violinplot(data_by_combo, positions=range(len(combos)),
-                          showmedians=True, showextrema=True)
-    for pc in parts["bodies"]:
-        pc.set_alpha(0.7)
-    ax.axhline(0.5, color="red", linestyle="--", alpha=0.5, label="Chance")
-    ax.set_xticks(range(len(combos)))
-    ax.set_xticklabels(combos, rotation=45, ha="right", fontsize=8)
-    ax.set_ylabel("LOOCV AUC across seeds (at best k)")
-    ax.set_title("Seed stability at best k per combo")
-    ax.legend()
-    plt.tight_layout()
-    plt.savefig(PLOT_DIR / "seed_stability_violin.png", dpi=150)
-    plt.close()
-    print("Saved → plots/seed_stability_violin.png")
-
-
-# ── 4. ROC curves — all modalities on one figure, coloured ──
-def plot_roc_curves(all_df, best_df):
-    """
-    All 4 modalities on a SINGLE figure, each in a different colour.
-    Mean ROC curve + 95% CI band across seeds at the best (model × k).
-    Legend states the model and k used for each modality.
-    """
-    COLORS = {
-        "PBL_PROT":    "#2196F3",   # blue
-        "Tissue_PROT": "#E91E63",   # pink/red
-        "PBL_RNA":     "#4CAF50",   # green
-        "Tissue_RNA":  "#FF9800",   # orange
-    }
-
-    best_per_mod = (
-        best_df
-        .sort_values("AUC_mean", ascending=False)
-        .groupby("Modality")
+def paired_comparison(results, best, n_boot, seed):
+    best_modality = (
+        best.sort_values("AUC_mean", ascending=False)
+        .groupby("Modality", as_index=False)
         .first()
-        .reset_index()
     )
-
-    fpr_grid = np.linspace(0, 1, 300)
-    fig, ax  = plt.subplots(figsize=(8, 7))
-
-    for mod in MODALITIES:
-        row = best_per_mod[best_per_mod["Modality"] == mod]
-        if row.empty:
-            continue
-
-        best_model = row["ModelName"].values[0]
-        best_k     = int(row["k_requested"].values[0])
-        color      = COLORS[mod]
-
-        sub = all_df[
-            (all_df["Modality"]    == mod) &
-            (all_df["ModelName"]   == best_model) &
-            (all_df["k_requested"] == best_k)
+    predictions = {}
+    for row in best_modality.itertuples(index=False):
+        subset = results[
+            (results["Modality"] == row.Modality)
+            & (results["ModelName"] == row.ModelName)
+            & (results["k_requested"] == row.k_requested)
         ]
-
-        tprs, seed_aucs = [], []
-        for seed in sub["Seed"].unique():
-            sdf    = sub[sub["Seed"] == seed]
-            y_true = sdf["TrueLabel"].values
-            y_scr  = sdf["PredScore"].values
-            if len(np.unique(y_true)) < 2:
-                continue
-            fpr_s, tpr_s, _ = roc_curve(y_true, y_scr)
-            seed_aucs.append(auc(fpr_s, tpr_s))
-            tpr_i    = np.interp(fpr_grid, fpr_s, tpr_s)
-            tpr_i[0] = 0.0
-            tprs.append(tpr_i)
-
-        tprs_arr = np.array(tprs)
-        mean_tpr = tprs_arr.mean(axis=0)
-        mean_tpr[-1] = 1.0
-        n      = tprs_arr.shape[0]
-        se     = tprs_arr.std(axis=0) / np.sqrt(n)
-        t_crit = stats.t.ppf(0.975, df=max(n - 1, 1))
-        ci_lo  = np.clip(mean_tpr - t_crit * se, 0, 1)
-        ci_hi  = np.clip(mean_tpr + t_crit * se, 0, 1)
-
-        mean_auc = float(np.mean(seed_aucs))
-        std_auc  = float(np.std(seed_aucs))
-
-        label = (
-            f"{mod}  [{best_model}, k={best_k}]\n"
-            f"  AUC = {mean_auc:.3f} ± {std_auc:.3f}  (n={n} seeds)"
+        predictions[row.Modality] = subset.groupby("TestSample").agg(
+            TrueLabel=("TrueLabel", "first"), Score=("PredScore", "mean")
         )
-        ax.plot(fpr_grid, mean_tpr, color=color, linewidth=2.2, label=label)
-        ax.fill_between(fpr_grid, ci_lo, ci_hi, color=color, alpha=0.12)
-        print(f"  {mod}: {best_model}, k={best_k}, AUC={mean_auc:.3f}±{std_auc:.3f}, n={n}")
 
-    ax.plot([0, 1], [0, 1], "k--", linewidth=1, alpha=0.5, label="Chance (AUC = 0.50)")
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1.02)
-    ax.set_xlabel("False Positive Rate", fontsize=13)
-    ax.set_ylabel("True Positive Rate", fontsize=13)
-    ax.set_title(
-        "ROC Curves — Best model × k per modality\n"
-        "Mean ± 95% CI across 100 seeds (LOOCV per-fold predictions)",
-        fontsize=12
+    modalities = list(predictions)
+    if len(modalities) < 2:
+        return pd.DataFrame(), pd.DataFrame()
+    shared = sorted(set.intersection(*(set(predictions[m].index) for m in modalities)))
+    if len(shared) < 4:
+        print(f"Warning: only {len(shared)} samples are shared; skipping paired bootstrap")
+        return pd.DataFrame(), pd.DataFrame()
+
+    labels = {m: predictions[m].loc[shared, "TrueLabel"].to_numpy() for m in modalities}
+    scores = {m: predictions[m].loc[shared, "Score"].to_numpy() for m in modalities}
+    reference = labels[modalities[0]]
+    for modality in modalities[1:]:
+        if not np.array_equal(reference, labels[modality]):
+            raise ValueError(f"True labels disagree across modalities for {modality}")
+
+    rng = np.random.default_rng(seed)
+    boot = {m: [] for m in modalities}
+    for _ in range(n_boot):
+        idx = rng.integers(0, len(shared), size=len(shared))
+        y = reference[idx]
+        if np.unique(y).size < 2:
+            continue
+        for modality in modalities:
+            boot[modality].append(roc_auc_score(y, scores[modality][idx]))
+
+    metadata = best_modality.set_index("Modality")
+    rows = []
+    for modality in modalities:
+        arr = np.asarray(boot[modality])
+        lo, hi = np.percentile(arr, [2.5, 97.5]) if arr.size else (np.nan, np.nan)
+        rows.append({
+            "Modality": modality,
+            "Best_Model": metadata.loc[modality, "ModelName"],
+            "Best_k": int(metadata.loc[modality, "k_requested"]),
+            "AUC_shared": roc_auc_score(reference, scores[modality]),
+            "CI95_low": lo,
+            "CI95_high": hi,
+            "N_shared": len(shared),
+            "N_boot_valid": arr.size,
+        })
+    paired = pd.DataFrame(rows).sort_values("AUC_shared", ascending=False)
+
+    pair_rows = []
+    for first, second in combinations(modalities, 2):
+        a, b = np.asarray(boot[first]), np.asarray(boot[second])
+        pair_rows.append({
+            "Modality_A": first,
+            "Modality_B": second,
+            "P_AUC_A_gt_AUC_B": np.mean(a > b) if a.size else np.nan,
+            "Mean_AUC_difference_A_minus_B": np.mean(a - b) if a.size else np.nan,
+            "N_boot_valid": a.size,
+        })
+    return paired, pd.DataFrame(pair_rows)
+
+
+def make_ranking(best, paired):
+    ranking = (
+        best.sort_values("AUC_mean", ascending=False)
+        .groupby("Modality", as_index=False)
+        .first()[["Modality", "ModelName", "k_requested", "AUC_mean", "AUC_std"]]
+        .rename(columns={"ModelName": "Best_Model", "k_requested": "Best_k"})
     )
-    ax.legend(loc="lower right", fontsize=9.5, framealpha=0.9)
-    ax.grid(True, alpha=0.25, linestyle="--")
-    plt.tight_layout()
-    out_path = PLOT_DIR / "roc_curves_combined.png"
-    plt.savefig(out_path, dpi=150, bbox_inches="tight")
-    plt.close()
-    print("Saved → plots/roc_curves_combined.png")
+    if not paired.empty:
+        ranking = ranking.merge(
+            paired[["Modality", "AUC_shared", "CI95_low", "CI95_high", "N_shared"]],
+            on="Modality", how="left",
+        )
+    order = "AUC_shared" if "AUC_shared" in ranking else "AUC_mean"
+    return ranking.sort_values(order, ascending=False).reset_index(drop=True)
 
 
-# ── Main ─────────────────────────────────────────────────────
-def main():
-    print("Loading results...")
-    all_df, failed_df = load_all_results()
-
-    fold_path = OUT_DIR / "aggregated_fold_level.csv"
-    all_df.to_csv(fold_path, index=False)
-    print(f"Saved fold-level table → {fold_path}  ({len(all_df):,} rows)")
-
-    if not failed_df.empty:
-        failed_df.to_csv(OUT_DIR / "failed_jobs.csv", index=False)
-
-    summary, job_df = build_summary(all_df)
-    summary.to_csv(OUT_DIR / "summary_by_k.csv", index=False)
-    print(f"Saved → summary_by_k.csv")
-
-    best_df = best_k_per_combo(summary)
-    best_df.to_csv(OUT_DIR / "summary_best_k.csv", index=False)
-    print(f"\nBest k per combo:")
-    print(best_df[["Modality","ModelName","k_requested","AUC_mean","AUC_std","N_seeds"]].to_string(index=False))
-
-    print("\nGenerating plots...")
-    plot_auc_vs_k(summary)
-    plot_best_k_heatmap(best_df)
-    plot_seed_distribution(job_df, best_df)
-
-    print("\nGenerating ROC curves with 95% CI...")
-    plot_roc_curves(all_df, best_df)
-
-    print("\nDone. Results written to:", OUT_DIR)
+def palette(modalities):
+    colors = sns.color_palette("tab10", n_colors=max(len(modalities), 1))
+    return dict(zip(modalities, colors))
 
 
-if __name__ == "__main__":
-    main()
+def plot_auc_by_k(summary, modalities, models, k_values, plot_dir):
+    for modality in modalities:
+        sub = summary[summary["Modality"] == modality]
+        fig, ax = plt.subplots(figsize=(8, 5))
+        for model in models:
+            data = sub[sub["ModelName"] == model].sort_values("k_requested")
+            if not data.empty:
+                ax.errorbar(data["k_requested"], data["AUC_mean"], yerr=data["AUC_std"],
+                            marker="o", capsize=4, label=model)
+        if len(k_values) > 1 and min(k_values) > 0:
+            ax.set_xscale("log")
+        ax.set_xticks(k_values); ax.set_xticklabels(k_values)
+        ax.axhline(0.5, color="gray", linestyle="--", alpha=0.7)
+        ax.set(xlabel="k (SelectKBest features)", ylabel="Mean repeated-CV ROC-AUC",
+               title=f"{modality}: AUC versus k", ylim=(0, 1.05))
+        ax.legend(fontsize=8); fig.tight_layout()
+        fig.savefig(plot_dir / f"auc_vs_k_{modality}.pdf", dpi=180)
+        plt.close(fig)
+
+
+def plot_heatmap(best, modalities, models, plot_dir):
+    auc_matrix = best.pivot(index="Modality", columns="ModelName", values="AUC_mean").reindex(
+        index=modalities, columns=models
+    )
+    k_matrix = best.pivot(index="Modality", columns="ModelName", values="k_requested").reindex(
+        index=modalities, columns=models
+    )
+    annotations = auc_matrix.applymap(lambda x: f"{x:.3f}" if pd.notna(x) else "")
+    for row in modalities:
+        for col in models:
+            if pd.notna(k_matrix.loc[row, col]):
+                annotations.loc[row, col] += f"\n(k={int(k_matrix.loc[row, col])})"
+    fig, ax = plt.subplots(figsize=(max(8, 1.5 * len(models)), max(4, 0.8 * len(modalities))))
+    sns.heatmap(auc_matrix, annot=annotations, fmt="", cmap="YlGnBu", vmin=0.4, vmax=1,
+                linewidths=0.5, ax=ax)
+    ax.set_title("Best mean CV AUC (and best k)")
+    fig.tight_layout(); fig.savefig(plot_dir / "heatmap_best_k.pdf", dpi=180); plt.close(fig)
+
+
+def plot_repeat_stability(repeat, best, plot_dir):
+    keys = ["Modality", "ModelName", "k_requested"]
+    data = repeat.merge(best[keys], on=keys, how="inner")
+    data["Configuration"] = data["Modality"] + "\n" + data["ModelName"]
+    fig, ax = plt.subplots(figsize=(max(10, 1.2 * data["Configuration"].nunique()), 6))
+    sns.violinplot(data=data, x="Configuration", y="CV_AUC", inner="quartile", ax=ax)
+    ax.axhline(0.5, color="red", linestyle="--", alpha=0.6)
+    ax.tick_params(axis="x", rotation=45)
+    ax.set_title("Repeated-CV stability at the best k per model")
+    fig.tight_layout(); fig.savefig(plot_dir / "repeat_stability_violin.pdf", dpi=180); plt.close(fig)
+
+def plot_roc_curve(results, best, modalities, plot_dir):
+    best_modality = best.sort_values("AUC_mean", ascending=False).groupby("Modality").first()
+    colors = palette(modalities)
+    grid = np.linspace(0, 1, 300)
+    fig, ax = plt.subplots(figsize=(7, 7))
+    for modality in modalities:
+        row = best_modality.loc[modality]
+        subset = results[
+            (results["Modality"] == modality)
+            & (results["ModelName"] == row["ModelName"])
+            & (results["k_requested"] == row["k_requested"])
+        ]
+        curves, aucs = [], []
+        for _, seed_data in subset.groupby("Seed"):
+            if seed_data["TrueLabel"].nunique() < 2:
+                continue
+            fpr, tpr, _ = roc_curve(seed_data["TrueLabel"], seed_data["PredScore"])
+            curves.append(np.interp(grid, fpr, tpr)); aucs.append(auc(fpr, tpr))
+        curves = np.asarray(curves)
+        if not curves.size:
+            continue
+        mean = curves.mean(axis=0); mean[0] = 0; mean[-1] = 1
+        sem = curves.std(axis=0, ddof=1) / np.sqrt(len(curves)) if len(curves) > 1 else np.zeros_like(mean)
+        critical = stats.t.ppf(0.975, max(len(curves) - 1, 1))
+        ax.plot(grid, mean, color=colors[modality], linewidth=2,
+                label=f"{modality}: {row['ModelName']}, k={int(row['k_requested'])}, AUC={np.mean(aucs):.3f}")
+        ax.fill_between(grid, np.clip(mean-critical*sem, 0, 1),
+                        np.clip(mean+critical*sem, 0, 1), color=colors[modality], alpha=0.13)
+    ax.plot([0, 1], [0, 1], "k--", alpha=0.5)
+    ax.set(xlabel="FPR", ylabel="TPR",
+           title="ROC curves for the best configuration per modality", xlim=(0, 1), ylim=(0, 1))
+    ax.legend(fontsize=8, loc="lower right"); fig.tight_layout()
+    fig.savefig(plot_dir / "roc_curves_combined.pdf", dpi=180); plt.close(fig)
+
+
+def plot_top_features(features, best, top_n, plot_dir):
+    if features.empty:
+        return
+    for row in best.itertuples(index=False):
+        data = features[
+            (features["Modality"] == row.Modality)
+            & (features["ModelName"] == row.ModelName)
+            & (features["k_requested"] == row.k_requested)
+        ].copy()
+        frequency = "ModelUsedFrequency" if (
+            "ModelUsedFrequency" in data and data["ModelUsedFrequency"].fillna(0).sum() > 0
+        ) else "SelectionFrequency"
+        data = data.nlargest(top_n, frequency).sort_values(frequency)
+        if data.empty:
+            continue
+        fig, ax = plt.subplots(figsize=(8, max(4, 0.3 * len(data))))
+        ax.barh(data["Feature"], data[frequency], color="#3F51B5")
+        ax.set(xlabel=frequency, title=f"{row.Modality}: {row.ModelName}, k={int(row.k_requested)}",
+               xlim=(0, 1))
+        fig.tight_layout()
+        fig.savefig(plot_dir / f"top_features_{row.Modality}_{row.ModelName}.pdf", dpi=180)
+        plt.close(fig)
+
+
+def run():
+    outputs = snakemake.output
+    plot_dir = Path(outputs.plots)
+    plot_dir.mkdir(parents=True, exist_ok=True)
+
+    results = read_many(snakemake.input.folds, "fold-result", REQUIRED_RESULT_COLUMNS)
+    features = read_many(snakemake.input.features, "feature-usage")
+    modalities = list(snakemake.params.modalities)
+    models = list(snakemake.params.models)
+    k_values = sorted(map(int, snakemake.params.k_values))
+
+    unknown_modalities = sorted(set(results["Modality"]) - set(modalities))
+    unknown_models = sorted(set(results["ModelName"]) - set(models))
+    if unknown_modalities or unknown_models:
+        raise ValueError(f"Results/config mismatch: modalities={unknown_modalities}, models={unknown_models}")
+
+    repeat, summary, best = build_summaries(results)
+    paired, pairwise = paired_comparison(
+        results, best, int(snakemake.params.n_boot), int(snakemake.params.seed)
+    )
+    ranking = make_ranking(best, paired)
+
+    results.to_csv(outputs.aggregated, index=False)
+    repeat.to_csv(outputs.repeat_auc, index=False)
+    summary.to_csv(outputs.summary_by_k, index=False)
+    best.to_csv(outputs.summary_best_k, index=False)
+    paired.to_csv(outputs.paired, index=False)
+    pairwise.to_csv(outputs.pairwise, index=False)
+    ranking.to_csv(outputs.ranking, index=False)
+    features.to_csv(outputs.feature_summary, index=False)
+
+    plot_auc_by_k(summary, modalities, models, k_values, plot_dir)
+    plot_heatmap(best, modalities, models, plot_dir)
+    plot_repeat_stability(repeat, best, plot_dir)
+    plot_roc_curve(results, best, modalities, plot_dir)
+    plot_top_features(features, best, int(snakemake.params.top_n_features), plot_dir)
+    print(f"Aggregated {len(snakemake.input.folds)} training files and {len(results)} prediction rows")
+    print(ranking.to_string(index=False))
+
+try:
+    run()
+
+except Exception:
+    print("[error] aggregation failed", flush=True)
+    traceback.print_exc()
+    log_fh.flush()
+    raise
+
+finally:
+    log_fh.close()

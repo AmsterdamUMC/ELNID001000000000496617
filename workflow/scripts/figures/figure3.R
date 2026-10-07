@@ -343,13 +343,13 @@ fgsea_RvNR_W8vW0_ggplotobj <- fgsea_RvNR_W8vW0 %>%
                       dplyr::rename(Group = Figure3), 
                     by = c("pathway" = "Geneset")) %>%
   dplyr::mutate(Group = factor(Group, levels = c("R: down", "R: up", "R: down; NR: up", "Down"))) %>%
-  ggplot(aes(x = forcats::fct_reorder(Label, -log10(pval)), y = Response)) +
+  ggplot(aes(x = Response, y = forcats::fct_reorder(Label, -log10(pval)))) +
   geom_point(aes(fill = NES, size = -log10(padj), alpha = Significance, shape = Direction)) +
   scale_shape_manual(values = direction_shapes) +
   scale_alpha_manual(values = significance_alpha) +
   scale_fill_gradient2(high = "coral3", low = "deepskyblue3", mid = "white") +
   scale_y_discrete(labels = label_wrap(50)) +
-  facet_grid(.~Group, scales = "free_x", space = "free_x") +
+  facet_grid(Group~., scales = "free_y", space = "free_y") +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
         axis.title.x = element_blank(),
@@ -701,8 +701,8 @@ ggsave(filename = figC_pdf,
        height = 6.5)
 ggsave(filename = figD_pdf, 
        plot = figD, 
-       width = 6.5,
-       height = 5.25)
+       width = 5.25,
+       height = 6.5)
 ggsave(filename = figEG_pdf, 
        plot = figEG, 
        width = 11,
