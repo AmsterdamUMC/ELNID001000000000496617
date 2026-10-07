@@ -275,4 +275,4 @@ and the external datasets it builds on:
 ## License and contact
 
 - **License:** `MIT (see LICENSE)`
-- **Corresponding author / maintainer:** `Andrew Y.F. Li Yim, , a.y.liyim@amsterdamumc.nl`
+- **Corresponding author / maintainer:** `Andrew Y.F. Li Yim, ORCID: 0000-0002-0754-0953, Email: a.y.liyim [at] amsterdamumc.nl`
