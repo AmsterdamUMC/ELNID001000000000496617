@@ -151,3 +151,51 @@ rule figure5:
     plotting_parameters=config["R"]["plotting_parameters"],
   script:
     "../scripts/figures/figure5.R"
+
+rule supplementaryfigure1:
+  input:
+    deps_R_W8vW0_csv="output/olink/analyses/BINF_R_W8vW0/deps/deps_BINF_R_W8vW0.csv",
+    deps_NR_W8vW0_csv="output/olink/analyses/BINF_NR_W8vW0/deps/deps_BINF_NR_W8vW0.csv",
+  output:
+    figA_pdf="output/figures/supplementary_figure1/figureA.pdf",
+    figB_pdf="output/figures/supplementary_figure1/figureB.pdf",
+    figC_pdf="output/figures/supplementary_figure1/figureC.pdf",
+  conda:
+    "../envs/r-supplementary_figure1.yaml"
+  message:
+    "--- Preparing constituent panels supplementary figure 1 ---"
+  threads: 1
+  resources:
+    mem_mb=16000,
+  log:
+    "output/figures/supplementaryfigure1.log"
+  params:
+    plotting_parameters=config["R"]["plotting_parameters"],
+  script:
+    "../scripts/figures/supplementary_figure1.R"
+
+rule supplementaryfigure2:
+  input:
+    degs_NR_W8vW0_TOF_csv="output/rnaseq/analyses/BINF_NR_W8vW0/degs/degs_BINF_NR_W8vW0.csv",
+    fgsea_R_W8vW0_TOF_csv="output/rnaseq/analyses/BINF_R_W8vW0/fgsea/fgsea_BINF_R_W8vW0.csv",
+    fgsea_NR_W8vW0_TOF_csv="output/rnaseq/analyses/BINF_NR_W8vW0/fgsea/fgsea_BINF_NR_W8vW0.csv",
+    degs_NR_W8vW0_TOF_melonardanaz2025_csv="output/scrnaseq_melonardanaz2025/analyses/BINF_NR_W8vW0/degs/degs_BINF_NR_W8vW0.csv",
+    fgsea_R_W8vW0_TOF_melonardanaz2025_csv="output/scrnaseq_melonardanaz2025/analyses/BINF_R_W8vW0/fgsea/fgsea_BINF_R_W8vW0.csv",
+    fgsea_NR_W8vW0_TOF_melonardanaz2025_csv="output/scrnaseq_melonardanaz2025/analyses/BINF_NR_W8vW0/fgsea/fgsea_BINF_NR_W8vW0.csv",
+  output:
+    figA_pdf="output/figures/supplementary_figure2/figureA.pdf",
+    figB_pdf="output/figures/supplementary_figure2/figureB.pdf",
+    figC_pdf="output/figures/supplementary_figure2/figureC.pdf",
+  conda:
+    "../envs/r-supplementary_figure2.yaml"
+  message:
+    "--- Preparing constituent panels supplementary figure 2 ---"
+  threads: 1
+  resources:
+    mem_mb=16000,
+  log:
+    "output/figures/supplementaryfigure2.log"
+  params:
+    plotting_parameters=config["R"]["plotting_parameters"],
+  script:
+    "../scripts/figures/supplementary_figure2.R"

@@ -110,6 +110,7 @@ degs_R_W8vW0_TOF_ownvmelonardanaz2025 <- degs_R_W8vW0_TOF %>%
   Significance = factor(Significance, levels = names(direction_colors)))
 
 # Combine degs tofacitinib and infliximab
+
 degs_R_W8vW0_TOFvIFX <- degs_R_W8vW0_TOF %>%
   dplyr::inner_join(degs_R_W8vW0_IFX_toedter2011 %>%
                       dplyr::group_by(gene_symbol) %>%
@@ -279,7 +280,7 @@ scatterplot_degs_r_W8vW0_TOFvIFX_ggplotobj <- degs_R_W8vW0_TOFvIFX %>%
   geom_point_rast(data = . %>%
                     dplyr::filter(Significance_detailed != "NS"),
                   aes(color = Significance_detailed)) +
-  geom_smooth(method = lm, level=0.99, col = "#000000") + 
+  # geom_smooth(method = lm, level=0.99, col = "#000000") + 
   scale_color_manual(values = tofvifx_direction_colors,
                      name = "Significance") +
   annotate("text", 
@@ -397,15 +398,15 @@ ggsave(filename = figA_pdf,
        height = 5.5)
 ggsave(filename = figBD_pdf, 
        plot = figBD, 
-       width = 6.5,
-       height = 5.5)
+       width = 8,
+       height = 6)
 ggsave(filename = figC_pdf, 
        plot = figC, 
-       width = 8.75,
-       height = 6)
+       width = 6.5,
+       height = 5.5)
 ggsave(filename = figE_pdf, 
        plot = figE, 
-       width = 10,
+       width = 7.5,
        height = 12.5)
 
 sink(type = "message")

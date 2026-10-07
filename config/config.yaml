@@ -4,8 +4,8 @@ scratch_dir: /scratch/users/P068280/ELNID001000000000496617
 # Common parameters
 R:
   plotting_parameters: workflow/scripts/figures/plotting_parameters.R
-  genes_xlsx: config/features_of_interest/260716_genes.xlsx
-  genesets_xlsx: config/features_of_interest/260716_genesets.xlsx
+  genes_xlsx: config/features_of_interest/260914_genes.xlsx
+  genesets_xlsx: config/features_of_interest/260914_genesets.xlsx
 
 # Metadata inputs
 data:
@@ -41,6 +41,7 @@ analysis_params:
 # Interaction
 interaction:
   gene_set: [NFKB2, RELB, CD70, LTA, CD40, CD40LG, TNFRSF8, TNFRSF12A]
+  comparisons: [BINF_R_W8vW0, BINF_NR_W8vW0, BINF_RvNR_W0]
 
 # Comparisons
 # filter: columns to be filtered on based on the sample metadata
@@ -195,8 +196,8 @@ comparisons_melonardanaz2025:
 ## Supervised machine learning (RvNR_W0)
 # Machine learning (pretreatment response prediction; modality comparison). The sweep is expanded by Snakemake into one job per (modality x model x k). sklearn/TPOT search spaces live in worker.py (they are code); the sweep dimensions and reproducibility settings are declared here.
 machine_learning:
-  comparisons: [TX_BINF_RvNR_W0, TX_PB_RvNR_W0, PX_BINF_RvNR_W0, PX_PB_RvNR_W0]
-  models: [LogisticRegression, GaussianNB, XGBoost, KNeighbors]
+  modalities: [TX_BINF, TX_PB, PX_BINF, PX_PB]
+  models: [Lasso, Ridge, GaussianNB, ElasticNet, XGBoost]
   k_values: [10, 25, 50, 100, 200, 300, 400, 500]
   n_seeds: 100
   seed: 2025
@@ -209,5 +210,6 @@ machine_learning:
   week_column: Week
   week: W0
   label_column: Response
+  donor_column: DonorID
   classes: [R, NR]
   positive_class: R

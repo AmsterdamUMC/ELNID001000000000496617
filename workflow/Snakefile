@@ -9,9 +9,8 @@ configfile: "config/config.yaml"
 # Sample metadata
 sample_metadata_df = pd.read_excel(config['data']['sample_metadata_xlsx'], header=0)
 comparisons = config['comparisons']
-ml_comparisons = config['machine_learning']['comparisons']
-ml_models = config['machine_learning']['models']
-ml_ks = config['machine_learning']['k_values']
+comparisons_interaction = config['interaction']['comparisons']
+_ml = config['machine_learning']
 
 # Rulefiles
 include: "rules/general.smk"
@@ -19,16 +18,18 @@ include: "rules/rnaseq.smk"
 include: "rules/olink.smk"
 include: "rules/microarray_toedter2011.smk"
 include: "rules/scrnaseq_melonardanaz2025.smk"
+include: "rules/combined.smk"
 include: "rules/machine_learning.smk"
 include: "rules/figures.smk"
 
 wildcard_constraints:
   comparison='|'.join([re.escape(x) for x in comparisons]),
+  comparison_interaction='|'.join([re.escape(x) for x in comparisons]),
   rnaseq_sampleID='|'.join([re.escape(x) for x in rnaseq_sampleIDs]),
   scrnaseq_melonardanaz2025_sampleID='|'.join([re.escape(x) for x in scrnaseq_melonardanaz2025_sampleIDs]),
-  ml_comparison='|'.join([re.escape(x) for x in ml_comparisons]),
-  ml_model='|'.join([re.escape(x) for x in ml_model]),
-  ml_k='|'.join([str(x) for x in ml_ks]),
+  modality='|'.join([re.escape(x) for x in _ml["modalities"]]),
+  model='|'.join([re.escape(x) for x in _ml["models"]]),
+  k='|'.join([str(x) for x in _ml["k_values"]]),
 
 rule all:
   input:
@@ -58,8 +59,28 @@ rule all:
     # expand("output/scrnaseq_melonardanaz2025/analyses/{comparison_scrnaseq_melonardanaz2025}/dds/dds_{comparison_scrnaseq_melonardanaz2025}.Rds", comparison_scrnaseq_melonardanaz2025 = comparisons_scrnaseq_melonardanaz2025),
     # expand("output/scrnaseq_melonardanaz2025/analyses/{comparison_scrnaseq_melonardanaz2025}/degs/deseq_{comparison_scrnaseq_melonardanaz2025}.Rds", comparison_scrnaseq_melonardanaz2025 = comparisons_scrnaseq_melonardanaz2025),
     expand("output/scrnaseq_melonardanaz2025/analyses/{comparison_scrnaseq_melonardanaz2025}/fgsea/fgsea_{comparison_scrnaseq_melonardanaz2025}.csv", comparison_scrnaseq_melonardanaz2025 = comparisons_scrnaseq_melonardanaz2025),
+    ## Interaction: Tofacitinib vs Infliximab
+    expand("output/combined/interaction_infliximab_tofacitinib_{comparison_interaction}.csv", comparison_interaction=comparisons_interaction),
     ## Supervised machine learning
     "output/machine_learning/data/RvNR_W0_labels.csv",
+    "output/machine_learning/data/TX_BINF_RvNR_W0_data.csv",
+    "output/machine_learning/data/TX_PB_RvNR_W0_data.csv",
+    "output/machine_learning/data/PX_BINF_RvNR_W0_data.csv",
+    "output/machine_learning/data/PX_PB_RvNR_W0_data.csv",
+    expand("output/machine_learning/raw/{modality}__{model}__k{k}.csv",modality=_ml["modalities"],model=_ml["models"],k=_ml["k_values"]),
+    expand("output/machine_learning/feature_selection/{modality}__{model}__k{k}__feature_usage.csv",
+           modality=_ml["modalities"],
+           model=_ml["models"],
+           k=_ml["k_values"]),
+    "output/machine_learning/summary/aggregated_predictions.csv",
+    "output/machine_learning/summary/repeat_auc.csv",
+    "output/machine_learning/summary/summary_by_k.csv",
+    "output/machine_learning/summary/summary_best_k.csv",
+    "output/machine_learning/summary/summary_paired_intersection.csv",
+    "output/machine_learning/summary/summary_pairwise_bootstrap.csv",
+    "output/machine_learning/summary/summary_modality_ranking.csv",
+    "output/machine_learning/summary/feature_usage_summary.csv",
+    "output/machine_learning/summary/plots",
     ## Figures
     "output/figures/figure1/figureB.pdf",
     "output/figures/figure2/figureA.pdf",
