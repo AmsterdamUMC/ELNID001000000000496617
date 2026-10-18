@@ -11,19 +11,22 @@ rnaseq_readfiles = rnaseq_fastq_df["new_path"].tolist()
 
 comparisons_rnaseq = [c for c in comparisons if 'rnaseq' in comparisons[c].get('assays', ['rnaseq', 'olink'])]
 
+# Scratch directory (normalised: config value may or may not carry a trailing slash)
+scratch_dir = config["scratch_dir"].rstrip("/")
+
 # Rules
 
 rule rnaseq_cp_fastq_to_scratch:
   input:
     readfile=lambda w: (rnaseq_fastq_df[rnaseq_fastq_df.new_path == w.readfile].old_path + ".fastq.gz").tolist(),
   output:
-    config["scratch_dir"] + "/resources/rnaseq/fastq/{readfile}.fastq.gz",
+    scratch_dir + "/resources/rnaseq/fastq/{readfile}.fastq.gz",
   conda:
     "../envs/rsync.yaml"
   message:
     "--- Copying {wildcards.readfile} to scratch ---"
   log:
-    config["scratch_dir"] + "resources/rnaseq/fastq/cp_{readfile}_to_scratch.log",
+    scratch_dir + "/resources/rnaseq/fastq/cp_{readfile}_to_scratch.log",
   shell:
     'rsync -a "{input.readfile}" "{output}" &> "{log}"'
 
@@ -31,19 +34,19 @@ rule rnaseq_cp_star_reference_to_scratch:
   input:
     config["reference"]["star_index"],
   output:
-    directory(config["scratch_dir"] + "/resources/rnaseq/reference"),
+    directory(scratch_dir + "/resources/rnaseq/reference"),
   conda:
     "../envs/rsync.yaml"
   message:
     "--- Copying STAR reference index to scratch ---"
   log:
-    config["scratch_dir"] + "/resources/rnaseq/cp_star_reference_to_scratch.log",
+    scratch_dir + "/resources/rnaseq/cp_star_reference_to_scratch.log",
   shell:
     'rsync -ar "{input}/" "{output}" &> "{log}"'
 
 rule rnaseq_fastqc:
   input:
-    config["scratch_dir"] + "/resources/rnaseq/fastq/{readfile}.fastq.gz",
+    scratch_dir + "/resources/rnaseq/fastq/{readfile}.fastq.gz",
   output:
     fastqcdir=directory("output/rnaseq/fastqc/{readfile}"),
     fastqchtml="output/rnaseq/fastqc/{readfile}/{readfile}_fastqc.html",
@@ -58,16 +61,19 @@ rule rnaseq_fastqc:
   shell:
     'fastqc --outdir="{output.fastqcdir}" --threads {threads} "{input}" &> "{log}"'
 
+# STAR writes to scratch. All STAR outputs are temp(): Snakemake deletes them from scratch automatically once rnaseq_cp_bam_to_base has copied them to the working directory.
+# Only the copies in output/rnaseq/bam/ are kept.
 rule rnaseq_star_pe:
   input:
-    reference=config["scratch_dir"] + "/resources/rnaseq/reference",
-    fastq_r1=config["scratch_dir"] + "/resources/rnaseq/fastq/{sampleID}_R1.fastq.gz",
-    fastq_r2=config["scratch_dir"] + "/resources/rnaseq/fastq/{sampleID}_R2.fastq.gz",
+    reference=scratch_dir + "/resources/rnaseq/reference",
+    fastq_r1=scratch_dir + "/resources/rnaseq/fastq/{sampleID}_R1.fastq.gz",
+    fastq_r2=scratch_dir + "/resources/rnaseq/fastq/{sampleID}_R2.fastq.gz",
   output:
-    sampleid_dir=directory(config["scratch_dir"] + "/output/rnaseq/bam/{sampleID}"),
-    bamfile=config["scratch_dir"] + "/output/rnaseq/bam/{sampleID}/{sampleID}_pe_Aligned.sortedByCoord.out.bam",
-    sjfile=config["scratch_dir"] + "/output/rnaseq/bam/{sampleID}/{sampleID}_pe_SJ.out.tab",
-    logfinalfile=config["scratch_dir"] + "/output/rnaseq/bam/{sampleID}/{sampleID}_pe_Log.final.out",
+    bamfile=temp(scratch_dir + "/output/rnaseq/bam/{sampleID}/{sampleID}_pe_Aligned.sortedByCoord.out.bam"),
+    sjfile=temp(scratch_dir + "/output/rnaseq/bam/{sampleID}/{sampleID}_pe_SJ.out.tab"),
+    logfinalfile=temp(scratch_dir + "/output/rnaseq/bam/{sampleID}/{sampleID}_pe_Log.final.out"),
+    logfile=temp(scratch_dir + "/output/rnaseq/bam/{sampleID}/{sampleID}_pe_Log.out"),
+    logprogressfile=temp(scratch_dir + "/output/rnaseq/bam/{sampleID}/{sampleID}_pe_Log.progress.out"),
   conda:
     "../envs/star.yaml"
   log:
@@ -76,7 +82,7 @@ rule rnaseq_star_pe:
     "--- STAR: paired-end alignment {wildcards.sampleID} ---"
   threads: 10
   params:
-    scratch_dir=config["scratch_dir"],
+    prefix=lambda w: f"{scratch_dir}/output/rnaseq/bam/{w.sampleID}/{w.sampleID}_pe_",
   shell:
     """
     STAR --runThreadN {threads} \
@@ -85,30 +91,36 @@ rule rnaseq_star_pe:
          --readFilesCommand zcat \
          --outSAMtype BAM SortedByCoordinate \
          --limitBAMsortRAM 50000000000 \
-         --outFileNamePrefix "{params.scratch_dir}/output/rnaseq/bam/{wildcards.sampleID}/{wildcards.sampleID}_pe_" \
+         --outFileNamePrefix "{params.prefix}" \
          |& tee -a "{log}"
+    # Remove STAR's temporary directory if left behind (e.g. after an interrupted earlier run)
+    rm -rf "{params.prefix}_STARtmp"
     """
 
 rule rnaseq_cp_bam_to_base:
   input:
-    config["scratch_dir"] + "/output/rnaseq/bam/{sampleID}",
+    bamfile=scratch_dir + "/output/rnaseq/bam/{sampleID}/{sampleID}_pe_Aligned.sortedByCoord.out.bam",
+    sjfile=scratch_dir + "/output/rnaseq/bam/{sampleID}/{sampleID}_pe_SJ.out.tab",
+    logfinalfile=scratch_dir + "/output/rnaseq/bam/{sampleID}/{sampleID}_pe_Log.final.out",
+    logfile=scratch_dir + "/output/rnaseq/bam/{sampleID}/{sampleID}_pe_Log.out",
+    logprogressfile=scratch_dir + "/output/rnaseq/bam/{sampleID}/{sampleID}_pe_Log.progress.out",
   output:
-    sampleid_dir=directory("output/rnaseq/bam/{sampleID}"),
     bamfile="output/rnaseq/bam/{sampleID}/{sampleID}_pe_Aligned.sortedByCoord.out.bam",
     sjfile="output/rnaseq/bam/{sampleID}/{sampleID}_pe_SJ.out.tab",
     logfinalfile="output/rnaseq/bam/{sampleID}/{sampleID}_pe_Log.final.out",
-    okfile="output/rnaseq/bam/{sampleID}_rsync.ok"
+    logfile="output/rnaseq/bam/{sampleID}/{sampleID}_pe_Log.out",
+    logprogressfile="output/rnaseq/bam/{sampleID}/{sampleID}_pe_Log.progress.out",
   conda:
     "../envs/rsync.yaml"
   message:
-    "--- Copying {input} to base dir ---"
+    "--- Copying {wildcards.sampleID} alignment from scratch to base dir ---"
   log:
     "output/rnaseq/bam/cp_{sampleID}_to_base.log",
+  params:
+    outdir=lambda w: f"output/rnaseq/bam/{w.sampleID}/",
   shell:
-    """
-    rsync -arv "{input}/" "{output.sampleid_dir}" &> "{log}"
-    touch "{output.okfile}"
-    """
+    # The scratch originals (temp) are only removed after this job has finished successfully
+    'rsync -av {input} "{params.outdir}" &> "{log}"'
 
 rule rnaseq_samtools_filter:
   input:
@@ -165,6 +177,7 @@ rule rnaseq_featurecounts:
                   -t exon \
                   -g gene_id \
                   -p \
+                  --countReadPairs \
                   -o "{output}" \
                   {input.bams} &> "{log}"
     """

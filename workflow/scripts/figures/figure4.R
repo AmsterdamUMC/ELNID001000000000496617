@@ -2,7 +2,7 @@
 # Figure 4
 # A) Correlation overlap between bulk RNA-sequencing and pseudobulked single-cell RNA-sequencing.
 # B) Correlation overlap between tofacitinib and infliximab.
-# C) 
+# C)
 # D) Volcanoplots representing the longitudinal differentially expressed genes identified when comparing week 8 with week 0 in responders (top-right) and non-responders (bottom-left) as well as a scatterplot (bottom-right) representing the longitudinal log2fold changes for responders (X-axis) and non-responders (Y-axis).
 # E)
 
@@ -78,9 +78,9 @@ fgsea_NR_W8vW0_IFX_toedter2011 <- read.csv(fgsea_NR_W8vW0_IFX_toedter2011_csv)
 # Preparation
 
 goi <- goi %>%
-  dplyr::mutate(ENSG = mapIds(org.Hs.eg.db, 
+  dplyr::mutate(ENSG = mapIds(org.Hs.eg.db,
                               keys = Gene,
-                              column = "ENSEMBL", 
+                              column = "ENSEMBL",
                               keytype = "SYMBOL"))
 
 goi_figure4 <- goi %>%
@@ -111,15 +111,16 @@ degs_R_W8vW0_TOF_ownvmelonardanaz2025 <- degs_R_W8vW0_TOF %>%
 
 # Combine degs tofacitinib and infliximab
 
+# Genes without a symbol are excluded (dplyr joins match NA to NA, which would pair every unannotated tofacitinib gene with one pooled microarray value).
+# Multiple probes per gene are collapsed to the probe with the highest average expression, as in the interaction analysis (workflow/scripts/combined/interaction_tofacitinib_infliximab.R).
 degs_R_W8vW0_TOFvIFX <- degs_R_W8vW0_TOF %>%
+  dplyr::filter(!is.na(gene_symbol), gene_symbol != "") %>%
   dplyr::inner_join(degs_R_W8vW0_IFX_toedter2011 %>%
+                      dplyr::filter(!is.na(gene_symbol), gene_symbol != "") %>%
                       dplyr::group_by(gene_symbol) %>%
-                      dplyr::summarize(log2FoldChange = mean(log2FoldChange),
-                                       AveExpr = mean(AveExpr),
-                                       stat = mean(stat),
-                                       pvalue = mean(pvalue)) %>%
-                      dplyr::mutate(padj = p.adjust(pvalue, method = "BH")), 
-                    by = c("gene_symbol"), 
+                      dplyr::slice_max(order_by = AveExpr, n = 1, with_ties = FALSE) %>%
+                      dplyr::ungroup(),
+                    by = c("gene_symbol"),
                     suffix = c("_TOF", "_IFX")) %>%
   dplyr::mutate(Significance_detailed = case_when(
     padj_TOF<0.05 & log2FoldChange_TOF<0 & pvalue_IFX<0.05 & log2FoldChange_IFX<0 ~ "Treatment down",
@@ -131,20 +132,20 @@ degs_R_W8vW0_TOFvIFX <- degs_R_W8vW0_TOF %>%
     .default = "NS"
   ))
 
-degs_R_W8vW0_TOFvIFX %>% 
+degs_R_W8vW0_TOFvIFX %>%
   dplyr::left_join(goi_figure4, by = c("gene_symbol" = "Gene")) %>%
   dplyr::filter(!is.na(Category)) %>%
   dplyr::select(gene_symbol, Category, log2FoldChange_TOF, log2FoldChange_IFX, pvalue_TOF, pvalue_IFX, Significance_detailed) %>%
   dplyr::arrange(Category, Significance_detailed)
 
-degs_R_W8vW0_TOFvIFX %>% 
+degs_R_W8vW0_TOFvIFX %>%
   dplyr::left_join(goi, by = c("gene_symbol" = "Gene")) %>%
   dplyr::filter(!is.na(Category)) %>%
   dplyr::select(gene_symbol, Category, log2FoldChange_TOF, log2FoldChange_IFX, pvalue_TOF, pvalue_IFX, Significance_detailed) %>%
   dplyr::arrange(Category, Significance_detailed) %>%
   dplyr::filter(Significance_detailed == "Treatment down")
 
-degs_R_W8vW0_TOFvIFX %>% 
+degs_R_W8vW0_TOFvIFX %>%
   dplyr::left_join(goi, by = c("gene_symbol" = "Gene")) %>%
   dplyr::filter(!is.na(Category)) %>%
   dplyr::select(gene_symbol, Category, log2FoldChange_TOF, log2FoldChange_IFX, pvalue_TOF, pvalue_IFX, Significance_detailed) %>%
@@ -188,7 +189,7 @@ fgsea_RvNR_W8vW0_TOFvIFX_ownvmelonardanaz2025vtoedter2011 <- fgsea_R_W8vW0_TOF %
                 Significance = ifelse(padj<0.05, "Significant", "NS"),
                 Response = factor(Response, levels = c("NR", "R")),
                 Cohort = factor(paste0(Treatment, "\n", Source), levels = c("Tofacitinib\nOwn", "Tofacitinib\nMA2025", "Infliximab\nT2011")))
-  
+
 # A
 
 cor_ownvmelonardanaz2025 <- cor.test(degs_R_W8vW0_TOF_ownvmelonardanaz2025$log2FoldChange_own, degs_R_W8vW0_TOF_ownvmelonardanaz2025$log2FoldChange_melonardanaz2025)
@@ -204,17 +205,17 @@ scatterplot_degs_r_W8vW0_ownvmelonardanaz2025_ggplotobj <- degs_R_W8vW0_TOF_ownv
                     dplyr::filter(Significance != "NS"),
                   aes(color = Significance)) +
   scale_color_manual(values = direction_colors) +
-  annotate("text", 
-           x = I(0.1), 
-           y = I(0.95), 
-           label = paste0("r = ", round(cor_ownvmelonardanaz2025$estimate, 3))) + 
+  annotate("text",
+           x = I(0.1),
+           y = I(0.95),
+           label = paste0("r = ", round(cor_ownvmelonardanaz2025$estimate, 3))) +
   labs(title = "Tofacitinib validation",
        subtitle = "W8 - W0",
        x = "log2(w8-w0)\nOwn",
        y = "log2(w8-w0)\nMelon-Ardanaz 2025") +
-  theme_bw() + 
+  theme_bw() +
   theme(legend.position = "right",
-        panel.grid.major = element_blank(), 
+        panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 
 # B/D v1
@@ -231,7 +232,7 @@ arrowplot_fgsea_RvNR_W8vW0_TOFvIFX_ownvmelonardanaz2025vtoedter2011_ggplotobj <-
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
-        panel.grid.major = element_blank(), 
+        panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "right",
         legend.title = element_text(face = "bold"),
@@ -259,7 +260,7 @@ arrowplot_fgsea_RvNR_W8vW0_TOFvIFX_ownvmelonardanaz2025vtoedter2011_ggplotobj <-
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
-        panel.grid.major = element_blank(), 
+        panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         legend.position = "right",
         legend.title = element_text(face = "bold"),
@@ -280,21 +281,21 @@ scatterplot_degs_r_W8vW0_TOFvIFX_ggplotobj <- degs_R_W8vW0_TOFvIFX %>%
   geom_point_rast(data = . %>%
                     dplyr::filter(Significance_detailed != "NS"),
                   aes(color = Significance_detailed)) +
-  # geom_smooth(method = lm, level=0.99, col = "#000000") + 
+  # geom_smooth(method = lm, level=0.99, col = "#000000") +
   scale_color_manual(values = tofvifx_direction_colors,
                      name = "Significance") +
-  annotate("text", 
-           x = I(0.1), 
-           y = I(0.95), 
-           label = paste0("r = ", round(cor_TOFvIFX$estimate, 3))) + 
+  annotate("text",
+           x = I(0.1),
+           y = I(0.95),
+           label = paste0("r = ", round(cor_TOFvIFX$estimate, 3))) +
   labs(title = "Tofacitinib vs Infliximab",
        subtitle = "Responder: week 8 - week 0",
        x = "log2(w8-w0)\nTOF",
        y = "log2(w8-w0)\nIFX") +
-  theme_bw() + 
+  theme_bw() +
   theme(legend.position = "right",
         legend.title = element_text(face = "bold"),
-        panel.grid.major = element_blank(), 
+        panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 
 # D
@@ -313,7 +314,7 @@ sample_metadata_R_W8vW0_TOF <- colData(vst_R_W8vW0_TOF) %>%
 
 exprs_scaled_goi_R_W8vW0_TOF <- t(apply(as.matrix(exprs_goi_R_W8vW0_TOF), MARGIN = 1, FUN = scale))
 colnames(exprs_scaled_goi_R_W8vW0_TOF) <- colnames(exprs_goi_R_W8vW0_TOF)
-exprs_scaled_goi_R_W8vW0_TOF <- exprs_scaled_goi_R_W8vW0_TOF %>% 
+exprs_scaled_goi_R_W8vW0_TOF <- exprs_scaled_goi_R_W8vW0_TOF %>%
   data.frame() %>%
   tibble::rownames_to_column(var = "ENSG") %>%
   dplyr::left_join(goi_figure4 %>%
@@ -345,7 +346,7 @@ colnames(goi_scaled_R_W8vW0_IFX_toedter2011) <- colnames(goi_w8mw0_R_W8vW0_IFX_t
 
 goi_scaled_R_W8vW0_IFXvTOF <- cbind(goi_scaled_R_W8vW0_IFX_toedter2011, exprs_scaled_goi_R_W8vW0_TOF[rownames(goi_scaled_R_W8vW0_IFX_toedter2011),])
 
-sample_metadata_R_W8vW0_IFXvTOF <- sample_metadata_R_W8vW0_IFX %>% 
+sample_metadata_R_W8vW0_IFXvTOF <- sample_metadata_R_W8vW0_IFX %>%
   dplyr::mutate(Drug = "IFX") %>%
   dplyr::rows_append(sample_metadata_R_W8vW0_TOF %>%
                        dplyr::mutate(Drug = "TOF")) %>%
@@ -365,14 +366,14 @@ cheatmap_sample_annotation_R_W8vW0_IFXvTOF <- rowAnnotation(
 )
 
 cheatmap_goi_annotation_R_W8vW0_IFXvTOF <- HeatmapAnnotation(
-  Geneset = feature_metadata_goi_R_W8vW0_TOFvIFX$Category, 
+  Geneset = feature_metadata_goi_R_W8vW0_TOFvIFX$Category,
   col = list(Geneset = geneset_label_colors),
   gp = gpar(col = "#D3D3D3")
 )
 
 cheatmap_goi_exprs_scaled_R_W8vW0_IFXvTOF_ggplotobj <- ggplotify::as.ggplot(
-  Heatmap(t(goi_scaled_R_W8vW0_IFXvTOF[,rownames(sample_metadata_R_W8vW0_IFXvTOF)]), 
-        name = "Exprs", 
+  Heatmap(t(goi_scaled_R_W8vW0_IFXvTOF[,rownames(sample_metadata_R_W8vW0_IFXvTOF)]),
+        name = "Exprs",
         row_split = sample_metadata_R_W8vW0_IFXvTOF$Drug,
         column_split = feature_metadata_goi_R_W8vW0_TOFvIFX$Category,
         top_annotation = cheatmap_goi_annotation_R_W8vW0_IFXvTOF,
@@ -392,20 +393,20 @@ figC <- scatterplot_degs_r_W8vW0_TOFvIFX_ggplotobj
 figE <- cheatmap_goi_exprs_scaled_R_W8vW0_IFXvTOF_ggplotobj
 
 # Save
-ggsave(filename = figA_pdf, 
-       plot = figA, 
+ggsave(filename = figA_pdf,
+       plot = figA,
        width = 6,
        height = 5.5)
-ggsave(filename = figBD_pdf, 
-       plot = figBD, 
+ggsave(filename = figBD_pdf,
+       plot = figBD,
        width = 8,
        height = 6)
-ggsave(filename = figC_pdf, 
-       plot = figC, 
+ggsave(filename = figC_pdf,
+       plot = figC,
        width = 6.5,
        height = 5.5)
-ggsave(filename = figE_pdf, 
-       plot = figE, 
+ggsave(filename = figE_pdf,
+       plot = figE,
        width = 7.5,
        height = 12.5)
 

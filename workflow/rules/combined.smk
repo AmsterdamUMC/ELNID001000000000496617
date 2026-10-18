@@ -5,6 +5,8 @@ rule interaction_infliximab_tofacitinib_analysis:
   output:
     interaction_degs_csv="output/combined/interaction_infliximab_tofacitinib_{comparison_interaction}.csv",
     interaction_nfkbnc_csv="output/combined/interaction_infliximab_tofacitinib_nfkbnc_{comparison_interaction}.csv",
+  params:
+    gene_set=config["interaction"]["gene_set"],
   log:
     "output/combined/infliximab_tofacitinib_interaction_analysis_{comparison_interaction}.log",
   conda:

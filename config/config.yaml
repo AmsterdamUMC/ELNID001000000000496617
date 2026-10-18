@@ -59,7 +59,7 @@ comparisons:
     variable: Week
     contrast: [W8, W0]
     block: [DonorID]
-    covariates: 
+    covariates:
       numeric: [Age]
       categorical: [Sex, Prednisone, Anti_TNF, Vedo]
   BINF_NR_W8vW0:
@@ -68,7 +68,7 @@ comparisons:
     variable: Week
     contrast: [W8, W0]
     block: [DonorID]
-    covariates: 
+    covariates:
       numeric: [Age]
       categorical: [Sex, Prednisone, Anti_TNF, Vedo]
   BINF_LR_W8vW0:
@@ -77,7 +77,7 @@ comparisons:
     variable: Week
     contrast: [W8, W0]
     block: [DonorID]
-    covariates: 
+    covariates:
       numeric: [Age]
       categorical: [Sex, Prednisone, Anti_TNF, Vedo]
   BINF_RvNR_W0:
@@ -85,8 +85,7 @@ comparisons:
     filter: {Tissue: [BINF], Response: [R, NR],  Week: [W0]}
     variable: Response
     contrast: [R, NR]
-    block: [DonorID]
-    covariates: 
+    covariates:
       numeric: [Age]
       categorical: [Sex, Prednisone, Anti_TNF, Vedo, eMayo3]
   BNINF_R_W8vW0:
@@ -95,7 +94,7 @@ comparisons:
     variable: Week
     contrast: [W8, W0]
     block: [DonorID]
-    covariates: 
+    covariates:
       numeric: [Age]
       categorical: [Sex, Prednisone, Anti_TNF, Vedo]
   BNINF_NR_W8vW0:
@@ -104,7 +103,7 @@ comparisons:
     variable: Week
     contrast: [W8, W0]
     block: [DonorID]
-    covariates: 
+    covariates:
       numeric: [Age]
       categorical: [Sex, Anti_TNF, Vedo] #"Sex" and "Prednisone" usage are fully collinear in this comparison (the only male sample was on prednisone), can only include one.
   BNINF_LR_W8vW0:
@@ -113,7 +112,7 @@ comparisons:
     variable: Week
     contrast: [W8, W0]
     block: [DonorID]
-    covariates: 
+    covariates:
       numeric: [Age]
       categorical: [Sex, Prednisone, Anti_TNF, Vedo]
   BNINF_RvNR_W0:
@@ -121,7 +120,7 @@ comparisons:
     filter: {Tissue: [BNINF], Response: [R, NR], Week: [W0]}
     variable: Response
     contrast: [R, NR]
-    covariates: 
+    covariates:
       numeric: [Age]
       categorical: [Sex, Prednisone, Anti_TNF, Vedo, eMayo3]
   PB_R_W8vW0:
@@ -130,7 +129,7 @@ comparisons:
     variable: Week
     contrast: [W8, W0]
     block: [DonorID]
-    covariates: 
+    covariates:
       numeric: [Age]
       categorical: [Sex, Prednisone, Anti_TNF, Vedo]
   PB_NR_W8vW0:
@@ -139,7 +138,7 @@ comparisons:
     variable: Week
     contrast: [W8, W0]
     block: [DonorID]
-    covariates: 
+    covariates:
       numeric: [Age]
       categorical: [Sex, Prednisone, Anti_TNF, Vedo]
   PB_LR_W8vW0:
@@ -148,16 +147,16 @@ comparisons:
     variable: Week
     contrast: [W8, W0]
     block: [DonorID]
-    covariates: 
+    covariates:
       numeric: [Age]
       categorical: [Sex, Prednisone, Anti_TNF, Vedo]
-      
+
   PB_RvNR_W0:
     assays: [rnaseq, olink]
     filter: {Tissue: [PB], Response: [R, NR], Week: [W0]}
     variable: Response
     contrast: [R, NR]
-    covariates: 
+    covariates:
       numeric: [Age]
       categorical: [Sex, Prednisone, Anti_TNF, Vedo, eMayo3]
 
@@ -184,17 +183,19 @@ comparisons_melonardanaz2025:
     filter: {Tissue: [BINF], Response: [R],  Week: [W0, W8]}
     variable: Week
     contrast: [W8, W0]
+    block: [Donor_ID]
   BINF_NR_W8vW0:
     filter: {Tissue: [BINF], Response: [NR],  Week: [W0, W8]}
     variable: Week
     contrast: [W8, W0]
+    block: [Donor_ID]
   BINF_RvNR_W0:
     filter: {Tissue: [BINF], Response: [R, NR],  Week: [W0]}
     variable: Response
     contrast: [R, NR]
 
 ## Supervised machine learning (RvNR_W0)
-# Machine learning (pretreatment response prediction; modality comparison). The sweep is expanded by Snakemake into one job per (modality x model x k). sklearn/TPOT search spaces live in worker.py (they are code); the sweep dimensions and reproducibility settings are declared here.
+# Machine learning (pretreatment response prediction; modality comparison). The sweep is expanded by Snakemake into one job per (modality x model x k). sklearn/TPOT search spaces live in workflow/scripts/machine_learning/train_model.py (they are code); the sweep dimensions and reproducibility settings are declared here.
 machine_learning:
   modalities: [TX_BINF, TX_PB, PX_BINF, PX_PB]
   models: [Lasso, Ridge, GaussianNB, ElasticNet, XGBoost]

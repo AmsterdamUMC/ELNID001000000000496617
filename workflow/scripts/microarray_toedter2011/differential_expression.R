@@ -69,7 +69,7 @@ design_matrix <- model.matrix(design_formula, data = colData(toedter2011_se))
 
 message("Design formula: ", deparse(design_formula))
 contrast_formula <- paste0(contrast[1], contrast[2], "-", contrast[1], contrast[3])
-contrast_matrix <- makeContrasts(contrasts = contrast_formula, 
+contrast_matrix <- makeContrasts(contrasts = contrast_formula,
                                  levels = design_matrix)
 message("Contrast formula: ", contrast_formula)
 # Run limma
@@ -77,7 +77,7 @@ if(!is.null(block_var)){
   message("block: ",  block_var)
   block <- factor(colData(toedter2011_se)[[block_var]])
   corfit <- duplicateCorrelation(assay(toedter2011_se, i = "logqnorm"), design_matrix, block = block)
-  fit_marraylm <- lmFit(assay(toedter2011_se, i = "log"), design = design_matrix, block = block, correlation = corfit$consensus)
+  fit_marraylm <- lmFit(assay(toedter2011_se, i = "logqnorm"), design = design_matrix, block = block, correlation = corfit$consensus)
 } else{
   fit_marraylm <- lmFit(assay(toedter2011_se, i = "logqnorm"), design = design_matrix)
 }

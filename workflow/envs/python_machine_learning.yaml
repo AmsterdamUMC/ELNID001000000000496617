@@ -5,7 +5,7 @@ dependencies:
   - python=3.10
   - tpot=0.12.2 # classic TPOT (config_dict / fitted_pipeline_ API)
   - scikit-learn=1.3.2
-  - py-xgboost
+  - py-xgboost=3.0.5 # version reported in the manuscript; verify against the env used (conda list -p .snakemake/conda/<hash>)
   - pandas
   - numpy
   - scipy

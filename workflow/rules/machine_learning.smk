@@ -21,13 +21,6 @@ ML_DATA_FILE = {
     "PX_PB":   "output/machine_learning/data/PX_PB_RvNR_W0_data.csv",
 }
 
-ML_RESULTS = expand(
-    "output/machine_learning/raw/{modality}_{model}_k{k}.csv",
-    modality=_ml["modalities"],
-    model=_ml["models"],
-    k=_ml["k_values"],
-)
-
 rule ml_prepare_data:
   input:
     dds_rds="output/rnaseq/dds/dds.Rds",

@@ -21,6 +21,7 @@ include: "rules/scrnaseq_melonardanaz2025.smk"
 include: "rules/combined.smk"
 include: "rules/machine_learning.smk"
 include: "rules/figures.smk"
+include: "rules/supplementary_tables.smk"
 
 wildcard_constraints:
   comparison='|'.join([re.escape(x) for x in comparisons]),
@@ -30,6 +31,7 @@ wildcard_constraints:
   modality='|'.join([re.escape(x) for x in _ml["modalities"]]),
   model='|'.join([re.escape(x) for x in _ml["models"]]),
   k='|'.join([str(x) for x in _ml["k_values"]]),
+  supplementary_table='|'.join([re.escape(x) for x in supplementary_tables]),
 
 rule all:
   input:
@@ -37,7 +39,7 @@ rule all:
     # expand(config["scratch_dir"] + "/resources/rnaseq/fastq/{readfile}.fastq.gz", readfile=rnaseq_readfiles),
     # config["scratch_dir"] + "/resources/rnaseq/reference",
     # expand("output/rnaseq/fastqc/{readfile}/{readfile}_fastqc.zip", readfile=rnaseq_readfiles),
-    # expand("output/rnaseq/bam/{rnaseq_sampleID}", rnaseq_sampleID=rnaseq_sampleIDs),
+    # expand("output/rnaseq/bam/{rnaseq_sampleID}/{rnaseq_sampleID}_pe_Aligned.sortedByCoord.out.bam", rnaseq_sampleID=rnaseq_sampleIDs),
     # "output/rnaseq/counts/counts.txt",
     # "output/rnaseq/multiqc",
     # "output/rnaseq/dds/dds.Rds",
@@ -87,3 +89,6 @@ rule all:
     "output/figures/figure3/figureA.pdf",
     "output/figures/figure4/figureA.pdf",
     "output/figures/figure5/figureA.pdf",
+    ## Supplementary tables
+    expand("supplementary_tables/{supplementary_table}.xlsx", supplementary_table=supplementary_tables),
+    "supplementary_tables/supplementary_table_legends.txt",

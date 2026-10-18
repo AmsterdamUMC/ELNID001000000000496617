@@ -1,0 +1,108 @@
+# Supplementary tables
+# Each table is compiled from one pipeline output into supplementary_tables/<table>.xlsx (one sheet, named <sheet_prefix>_<comparison>).
+# source: one of rnaseq_degs, rnaseq_fgsea, olink_deps, melonardanaz2025_degs, melonardanaz2025_fgsea, toedter2011_degs, toedter2011_fgsea (path templates and column layouts are defined in workflow/rules/supplementary_tables.smk and workflow/scripts/supplementary_tables/compile_table.py).
+# legend: written to supplementary_tables/supplementary_table_legends.txt
+
+supplementary_tables:
+  tableS1:
+    source: rnaseq_degs
+    comparison: BINF_RvNR_W0
+    legend: >-
+      Supplementary Table 1. Differential gene expression analysis results from inflamed mucosal biopsy comparing responders with non-responders at baseline, derived using DESeq2.
+      Columns: gene_symbol, gene symbol; ENSG, Ensembl identifier; baseMean, the mean normalized count across all samples; log2FoldChange; lfcSE, standard error of the log2 fold change; stat, Wald statistic; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value.
+  tableS2:
+    source: rnaseq_fgsea
+    comparison: BINF_RvNR_W0
+    legend: >-
+      Supplementary Table 2. Gene set enrichment analysis results from inflamed mucosal biopsy comparing responders with non-responders at baseline, derived using pre-ranked fgsea against the Wald statistic obtained from Supplementary Table 1.
+      Columns: pathway, pathway identifier; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value; log2err, the expected error for the standard deviation of the p-value logarithm; ES, enrichment score; NES, enrichment score normalized to mean enrichment of random samples of the same size; size, size of the pathway; leadingEdge, genes that drive the enrichment (pipe-delimited).
+  tableS3:
+    source: rnaseq_degs
+    comparison: BINF_R_W8vW0
+    legend: >-
+      Supplementary Table 3. Differential gene expression analysis results from inflamed mucosal biopsy comparing week 8 against baseline for responders, derived using DESeq2 with patient as blocking factor.
+      Columns: gene_symbol, gene symbol; ENSG, Ensembl identifier; baseMean, the mean normalized count across all samples; log2FoldChange; lfcSE, standard error of the log2 fold change; stat, Wald statistic; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value.
+  tableS4:
+    source: rnaseq_fgsea
+    comparison: BINF_R_W8vW0
+    legend: >-
+      Supplementary Table 4. Gene set enrichment analysis results from inflamed mucosal biopsy comparing week 8 against baseline for responders, derived using pre-ranked fgsea against the Wald statistic obtained from Supplementary Table 3.
+      Columns: pathway, pathway identifier; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value; log2err, the expected error for the standard deviation of the p-value logarithm; ES, enrichment score; NES, enrichment score normalized to mean enrichment of random samples of the same size; size, size of the pathway; leadingEdge, genes that drive the enrichment (pipe-delimited).
+  tableS5:
+    source: rnaseq_degs
+    comparison: BINF_NR_W8vW0
+    legend: >-
+      Supplementary Table 5. Differential gene expression analysis results from inflamed mucosal biopsy comparing week 8 against baseline for non-responders, derived using DESeq2 with patient as blocking factor.
+      Columns: gene_symbol, gene symbol; ENSG, Ensembl identifier; baseMean, the mean normalized count across all samples; log2FoldChange; lfcSE, standard error of the log2 fold change; stat, Wald statistic; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value.
+  tableS6:
+    source: rnaseq_fgsea
+    comparison: BINF_NR_W8vW0
+    legend: >-
+      Supplementary Table 6. Gene set enrichment analysis results from inflamed mucosal biopsy comparing week 8 against baseline for non-responders, derived using pre-ranked fgsea against the Wald statistic obtained from Supplementary Table 5.
+      Columns: pathway, pathway identifier; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value; log2err, the expected error for the standard deviation of the p-value logarithm; ES, enrichment score; NES, enrichment score normalized to mean enrichment of random samples of the same size; size, size of the pathway; leadingEdge, genes that drive the enrichment (pipe-delimited).
+  tableS7:
+    source: rnaseq_degs
+    comparison: BINF_LR_W8vW0
+    legend: >-
+      Supplementary Table 7. Differential gene expression analysis results from inflamed mucosal biopsy comparing week 8 against baseline for late responders, derived using DESeq2 with patient as blocking factor.
+      Columns: gene_symbol, gene symbol; ENSG, Ensembl identifier; baseMean, the mean normalized count across all samples; log2FoldChange; lfcSE, standard error of the log2 fold change; stat, Wald statistic; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value.
+  tableS8:
+    source: rnaseq_fgsea
+    comparison: BINF_LR_W8vW0
+    legend: >-
+      Supplementary Table 8. Gene set enrichment analysis results from inflamed mucosal biopsy comparing week 8 against baseline for late responders, derived using pre-ranked fgsea against the Wald statistic obtained from Supplementary Table 7.
+      Columns: pathway, pathway identifier; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value; log2err, the expected error for the standard deviation of the p-value logarithm; ES, enrichment score; NES, enrichment score normalized to mean enrichment of random samples of the same size; size, size of the pathway; leadingEdge, genes that drive the enrichment (pipe-delimited).
+  tableS9:
+    source: olink_deps
+    comparison: BINF_R_W8vW0
+    legend: >-
+      Supplementary Table 9. Differential protein expression analysis results from inflamed mucosal biopsy on combined Cardiometabolic, Inflammation, Neurology and Oncology Olink Explore 384 data comparing week 8 against baseline for responders, derived using limma with patient as blocking factor.
+      Columns: gene_symbol, protein symbol; AveExpr, the average expression across all samples; log2FoldChange; stat, moderated t-statistic; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value; OlinkID, Olink identifier; UniProt, UniProt identifier; Panel, source panel of the assay; Panel_Lot_Nr, panel lot number.
+  tableS10:
+    source: melonardanaz2025_degs
+    comparison: BINF_R_W8vW0
+    legend: >-
+      Supplementary Table 10. Differential gene expression analysis results from mucosal biopsy on pseudobulked single-cell RNA-sequencing data obtained from GSE253006 (Melón-Ardanaz et al. 2025) comparing week 8 against baseline for responders, derived using DESeq2 with patient as blocking factor.
+      Columns: gene_symbol, gene symbol; ENSG, Ensembl identifier; baseMean, the mean normalized count across all samples; log2FoldChange; lfcSE, standard error of the log2 fold change; stat, Wald statistic; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value.
+  tableS11:
+    source: melonardanaz2025_fgsea
+    comparison: BINF_R_W8vW0
+    legend: >-
+      Supplementary Table 11. Gene set enrichment analysis results from mucosal biopsy on pseudobulked single-cell RNA-sequencing data obtained from GSE253006 (Melón-Ardanaz et al. 2025) comparing week 8 against baseline for responders, derived using pre-ranked fgsea against the Wald statistic obtained from Supplementary Table 10.
+      Columns: pathway, pathway identifier; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value; log2err, the expected error for the standard deviation of the p-value logarithm; ES, enrichment score; NES, enrichment score normalized to mean enrichment of random samples of the same size; size, size of the pathway; leadingEdge, genes that drive the enrichment (pipe-delimited).
+  tableS12:
+    source: melonardanaz2025_degs
+    comparison: BINF_NR_W8vW0
+    legend: >-
+      Supplementary Table 12. Differential gene expression analysis results from mucosal biopsy on pseudobulked single-cell RNA-sequencing data obtained from GSE253006 (Melón-Ardanaz et al. 2025) comparing week 8 against baseline for non-responders, derived using DESeq2 with patient as blocking factor.
+      Columns: gene_symbol, gene symbol; ENSG, Ensembl identifier; baseMean, the mean normalized count across all samples; log2FoldChange; lfcSE, standard error of the log2 fold change; stat, Wald statistic; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value.
+  tableS13:
+    source: melonardanaz2025_fgsea
+    comparison: BINF_NR_W8vW0
+    legend: >-
+      Supplementary Table 13. Gene set enrichment analysis results from mucosal biopsy on pseudobulked single-cell RNA-sequencing data obtained from GSE253006 (Melón-Ardanaz et al. 2025) comparing week 8 against baseline for non-responders, derived using pre-ranked fgsea against the Wald statistic obtained from Supplementary Table 12.
+      Columns: pathway, pathway identifier; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value; log2err, the expected error for the standard deviation of the p-value logarithm; ES, enrichment score; NES, enrichment score normalized to mean enrichment of random samples of the same size; size, size of the pathway; leadingEdge, genes that drive the enrichment (pipe-delimited).
+  tableS14:
+    source: toedter2011_degs
+    comparison: BINF_R_W8vW0
+    legend: >-
+      Supplementary Table 14. Differential gene expression analysis results from mucosal biopsy on infliximab microarray data obtained from GSE23597 (Toedter et al. 2011) comparing week 8 against baseline for responders, derived using limma with patient as blocking factor. Results are reported per probe.
+      Columns: gene_symbol, gene symbol; AveExpr, the average expression across all samples; log2FoldChange; stat, moderated t-statistic; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value; ProbeID, Affymetrix Human Genome U133 Plus 2.0 probe identifier.
+  tableS15:
+    source: toedter2011_fgsea
+    comparison: BINF_R_W8vW0
+    legend: >-
+      Supplementary Table 15. Gene set enrichment analysis results from mucosal biopsy on infliximab microarray data obtained from GSE23597 (Toedter et al. 2011) comparing week 8 against baseline for responders, derived using pre-ranked fgsea against the moderated t-statistic obtained from Supplementary Table 14 (highest statistic per gene).
+      Columns: pathway, pathway identifier; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value; log2err, the expected error for the standard deviation of the p-value logarithm; ES, enrichment score; NES, enrichment score normalized to mean enrichment of random samples of the same size; size, size of the pathway; leadingEdge, genes that drive the enrichment (pipe-delimited).
+  tableS16:
+    source: rnaseq_degs
+    comparison: PB_R_W8vW0
+    legend: >-
+      Supplementary Table 16. Differential gene expression analysis results from peripheral blood comparing week 8 against baseline for responders, derived using DESeq2 with patient as blocking factor.
+      Columns: gene_symbol, gene symbol; ENSG, Ensembl identifier; baseMean, the mean normalized count across all samples; log2FoldChange; lfcSE, standard error of the log2 fold change; stat, Wald statistic; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value.
+  tableS17:
+    source: rnaseq_fgsea
+    comparison: PB_R_W8vW0
+    legend: >-
+      Supplementary Table 17. Gene set enrichment analysis results from peripheral blood comparing week 8 against baseline for responders, derived using pre-ranked fgsea against the Wald statistic obtained from Supplementary Table 16.
+      Columns: pathway, pathway identifier; pvalue, nominal p-value; padj, Benjamini-Hochberg adjusted p-value; log2err, the expected error for the standard deviation of the p-value logarithm; ES, enrichment score; NES, enrichment score normalized to mean enrichment of random samples of the same size; size, size of the pathway; leadingEdge, genes that drive the enrichment (pipe-delimited).

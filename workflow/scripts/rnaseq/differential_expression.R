@@ -75,7 +75,63 @@ for(var in factor_vars){
 }
 factor_vars <- factor_vars[valid_vars]
 message("factor_vars: ", paste(factor_vars, collapse=", "))
-design_formula <- as.formula(paste("~", paste(factor_vars, collapse=" + ")))
+
+# Pairing / blocking
+# If a block (e.g. DonorID) is given AND the tested variable varies within blocks (longitudinal design), the block is added as a fixed effect: ~ block + covariates + variable.
+# Covariates that are constant within every block (Age, Sex, Prednisone, Anti_TNF, Vedo, ...) are fully absorbed by the block and would make the model matrix rank-deficient, so they are dropped. Their effect is already controlled for by the within-donor comparison.
+# Blocks lacking either contrast level contribute nothing to the contrast and are removed so that only complete pairs are analysed.
+# For cross-sectional comparisons (one sample per block) the block is ignored.
+block_var <- unlist(comparison_params$block)
+if(!is.null(block_var)){
+  block_var <- block_var[1]
+  if(!block_var %in% colnames(colData(dds_subset))){
+    stop("Block variable '", block_var, "' not found in colData")
+  }
+  block <- factor(as.character(colData(dds_subset)[[block_var]]))
+  variable_values <- as.character(colData(dds_subset)[[variable]])
+  varies_within_block <- any(tapply(variable_values, block, function(x) length(unique(x)) > 1))
+
+  if(!varies_within_block){
+    message("Block '", block_var, "': '", variable, "' does not vary within blocks (cross-sectional); block ignored")
+    block_var <- NULL
+  } else {
+    # Keep complete pairs only
+    complete_blocks <- names(which(tapply(variable_values, block, function(x) all(contrast[2:3] %in% x))))
+    keep_samples <- as.character(block) %in% complete_blocks
+    if(any(!keep_samples)){
+      message("Removing ", sum(!keep_samples), " sample(s) from blocks without both '", contrast[2], "' and '", contrast[3], "': ",
+              paste(colnames(dds_subset)[!keep_samples], collapse = ", "))
+    }
+    dds_subset <- dds_subset[, keep_samples]
+    colData(dds_subset)[[block_var]] <- droplevels(factor(as.character(colData(dds_subset)[[block_var]])))
+    for(var in factor_vars){
+      if(is.factor(colData(dds_subset)[[var]])) colData(dds_subset)[[var]] <- droplevels(colData(dds_subset)[[var]])
+    }
+    message("Block '", block_var, "': ", nlevels(colData(dds_subset)[[block_var]]), " complete pairs, ", ncol(dds_subset), " samples")
+
+    # Drop covariates nested within the block
+    block <- colData(dds_subset)[[block_var]]
+    candidate_covariates <- setdiff(factor_vars, variable)
+    nested <- candidate_covariates[vapply(candidate_covariates, function(var){
+      all(tapply(as.character(colData(dds_subset)[[var]]), block, function(x) length(unique(x)) == 1))
+    }, logical(1))]
+    if(length(nested) > 0){
+      message("Dropping covariates constant within '", block_var, "' (absorbed by block): ", paste(nested, collapse = ", "))
+    }
+    factor_vars <- setdiff(factor_vars, nested)
+  }
+}
+
+# Tested variable last, preceded by block and remaining covariates
+design_vars <- c(block_var, setdiff(factor_vars, variable), variable)
+design_formula <- as.formula(paste("~", paste(design_vars, collapse=" + ")))
+
+# Fail early with an informative message rather than inside DESeq()
+design_rank <- Matrix::rankMatrix(model.matrix(design_formula, data = as.data.frame(colData(dds_subset))))
+design_ncol <- ncol(model.matrix(design_formula, data = as.data.frame(colData(dds_subset))))
+if(design_rank < design_ncol){
+  stop("Design matrix is not full rank (rank ", design_rank, " < ", design_ncol, " columns): ", deparse(design_formula))
+}
 
 design(dds_subset) <- design_formula
 
